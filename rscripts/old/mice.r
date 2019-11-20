@@ -1,0 +1,167 @@
+mice <- read.csv("/Users/micheldelange/Documents/mice/data/mice.csv",header=TRUE)[1:40,]
+tail(mice$Data.Set)
+table(mice$Animal_type)
+
+mice$CD19pos_B220pos_0_prop <-  mice$CD19pos_B220pos_0 / mice$Live_cells_0
+mice$CD19pos_B220pos_3_prop <-  mice$CD19pos_B220pos_3 / mice$Live_cells_3
+mice$CD19pos_B220pos_10_prop <-  mice$CD19pos_B220pos_10 / mice$Live_cells_10
+mice$CD19pos_B220pos_17_prop <-  mice$CD19pos_B220pos_17/ mice$Live_cells_17
+mice$CD19pos_B220pos_24_prop <-  mice$CD19pos_B220pos_24 / mice$Live_cells_24
+mice$CD19pos_B220pos_31_prop <-  mice$CD19pos_B220pos_31 / mice$Live_cells_31
+
+
+
+par(mfrow=c(1,1))
+#boxplot(mice$Animal_type,mice$CD19pos_B220pos_0_perc)
+
+female <- mice[grepl('female',mice$Animal_type),]
+male   <- mice[grepl('_male',mice$Animal_type),] 
+
+female$Animal_type = factor(female$Animal_type)
+male$Animal_type = factor(male$Animal_type)
+
+par(mfrow=c(1,2))
+
+
+plot(' ',xlim=c(0,31),ylim=c(0,1),main='proportion CD19posB22, male mice 1 to 10 ',ylab='CD19pos_B220',xlab='time')
+for (mouse in 1:10) {
+   
+  lines(c(0,3,10,17,24,31),
+  c(male$CD19pos_B220pos_0_prop[mouse],
+  male$CD19pos_B220pos_3_prop[mouse],
+  male$CD19pos_B220pos_10_prop[mouse],
+  male$CD19pos_B220pos_17_prop[mouse],
+  male$CD19pos_B220pos_24_prop[mouse],
+  male$CD19pos_B220pos_31_prop[mouse]
+  ),
+  pch='.',col=rainbow(20)[mouse])
+}
+plot(' ',xlim=c(0,31),ylim=c(0,1),main='proportion CD19posB22, male mice 11 to 20  ',ylab='CD19pos_B220',xlab='time')
+for (mouse in 11:20) {
+  lines(c(0,3,10,17,24,31),
+        c(male$CD19pos_B220pos_0_prop[mouse],
+          male$CD19pos_B220pos_3_prop[mouse],
+          male$CD19pos_B220pos_10_prop[mouse],
+          male$CD19pos_B220pos_17_prop[mouse],
+          male$CD19pos_B220pos_24_prop[mouse],
+          male$CD19pos_B220pos_31_prop[mouse]),
+        pch='.',col=rainbow(20)[mouse])
+}
+
+## same thing, by animal type
+male_wt <- mice[grepl('WT_male',mice$Animal_type),] 
+male_pound <- mice[grepl('Pound_male',mice$Animal_type),] 
+male_plt2 <- mice[grepl('PLT2_male',mice$Animal_type),] 
+
+par(mfrow=c(1,3))
+
+
+plot(' ',xlim=c(0,31),ylim=c(0,1),main='proportion CD19posB22, WT_male mice 1 to 4 ',ylab='CD19pos_B220',xlab='time')
+for (mouse in seq(1:4)) {
+  
+  lines(c(0,3,10,17,24,31),
+        c(male_wt$CD19pos_B220pos_0_prop[mouse],
+          male_wt$CD19pos_B220pos_3_prop[mouse],
+          male_wt$CD19pos_B220pos_10_prop[mouse],
+          male_wt$CD19pos_B220pos_17_prop[mouse],
+          male_wt$CD19pos_B220pos_24_prop[mouse],
+          male_wt$CD19pos_B220pos_31_prop[mouse]
+        ),
+        pch='.',col=rainbow(4)[mouse])
+}
+
+plot(' ',xlim=c(0,31),ylim=c(0,1),main='proportion CD19posB22, Pound_male mice 1 to 7 ',ylab='CD19pos_B220',xlab='time')
+for (mouse in seq(1:7)) {
+  lines(c(0,3,10,17,24,31),
+        c(male_pound$CD19pos_B220pos_0_prop[mouse],
+          male_pound$CD19pos_B220pos_3_prop[mouse],
+          male_pound$CD19pos_B220pos_10_prop[mouse],
+          male_pound$CD19pos_B220pos_17_prop[mouse],
+          male_pound$CD19pos_B220pos_24_prop[mouse],
+          male_pound$CD19pos_B220pos_31_prop[mouse]
+        ),
+        pch='.',col=rainbow(7)[mouse])
+}
+
+plot(' ',xlim=c(0,31),ylim=c(0,1),main='proportion CD19posB22, Pound_plt2 mice 1 to 9 ',ylab='CD19pos_B220',xlab='time')
+for (mouse in seq(1:9)) {
+  lines(c(0,3,10,17,24,31),
+        c(male_plt2$CD19pos_B220pos_0_prop[mouse],
+          male_plt2$CD19pos_B220pos_3_prop[mouse],
+          male_plt2$CD19pos_B220pos_10_prop[mouse],
+          male_plt2$CD19pos_B220pos_17_prop[mouse],
+          male_plt2$CD19pos_B220pos_24_prop[mouse],
+          male_plt2$CD19pos_B220pos_31_prop[mouse]
+        ),
+        pch='.',col=rainbow(9)[mouse])
+}
+
+
+
+
+
+
+table(female$Animal_type)
+table(male$Animal_type)
+
+
+female$plt2 <- grepl('PLT2',female$Animal_type)
+female$pound <- grepl('Pound_',female$Animal_type)
+male$plt2 <- grepl('PLT2',male$Animal_type)
+male$pound <- grepl('Pound_',male$Animal_type)
+
+
+table(female$Animal_type)
+table(male$Animal_type)
+par(mfrow=c(1,1))
+
+
+plot(female$Animal_type,female$CD19pos_B220pos_0_prop,main="CD19pos_B220pos_0_prop") 
+m <- glm(female$CD19pos_B220pos_0_prop ~ 1 + female$plt2 + female$pound, weights = female$Live_cells_0,
+           family='quasiquasibinomial') 
+summary(m)
+
+
+plot(female$Animal_type,female$CD19pos_B220pos_3_prop)
+m <- glm(female$CD19pos_B220pos_3_prop ~ 1 + female$plt2 + female$pound, weights = female$Live_cells_3,
+         family='quasibinomial') 
+summary(m)
+
+
+#### male
+
+plot(male$Animal_type,male$CD19pos_B220pos_0_prop,main="CD19pos_B220pos_0_prop") 
+m <- glm(male$CD19pos_B220pos_0_prop ~ 1 + male$plt2 + male$pound, weights = male$Live_cells_0,
+         family='quasibinomial') 
+summary(m)
+
+
+table(male$Animal_type)
+plot(male$Animal_type,male$CD19pos_B220pos_3_prop,main="CD19pos_B220pos_3_prop") 
+m <- glm(male$CD19pos_B220pos_3_prop ~ 1 + male$plt2 + male$pound, weights = male$Live_cells_3,
+         family='quasibinomial') 
+summary(m)
+
+
+plot(male$Animal_type,male$CD19pos_B220pos_10_prop,main="CD19pos_B220pos_10_prop") 
+m <- glm(male$CD19pos_B220pos_10_prop ~ 1 + male$plt2 + male$pound, weights = male$Live_cells_10,
+         family='quasibinomial') 
+summary(m)
+
+plot(male$Animal_type,male$CD19pos_B220pos_17_prop,main="CD19pos_B220pos_17_prop") 
+m <- glm(male$CD19pos_B220pos_17_prop ~ 1 + male$plt2 + male$pound, weights = male$Live_cells_17,
+         family='quasibinomial') 
+summary(m)
+
+plot(male$Animal_type,male$CD19pos_B220pos_24_prop,main="CD19pos_B220pos_24_prop") 
+m <- glm(male$CD19pos_B220pos_24_prop ~ 1 + male$plt2 + male$pound, weights = male$Live_cells_24,
+         family='quasibinomial') 
+summary(m)
+
+#plot(male$Animal_type,male$CD19pos_B220pos_31_prop,main="CD19pos_B220pos_31_prop") 
+#m <- glm(male$CD19pos_B220pos_31_prop ~ 1 + male$plt2 + male$pound, weights = male$Live_cells_31,
+#         family='quasibinomial') 
+#summary(m)
+
+
+plot(male$Animal_type,male$CD19pos_B220pos_0_prop)

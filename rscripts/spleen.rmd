@@ -1,0 +1,311 @@
+---
+title: "Spleen"
+author: "Michel de Lange"
+date: "11/3/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+# day 0
+
+```{r }
+
+
+invlogit <- function(x) {
+  return(1/(1+exp(-x)))
+}
+
+mice_spl<- read.csv("~/Documents/mice/data/spleen2.csv",na.strings=c("","NA"),header=TRUE)[1:28,]
+mice_spl$Animal_ID[c(1,28)]
+dim(mice_spl)
+female <- grepl('female',mice_spl$Animal_type)
+length(female)
+
+type <- rep("aWT",28)
+type[grepl('PLT',mice_spl$Animal_type)] <- "PLT"
+type[grepl('Pound',mice_spl$Animal_type)] <- "Pound"
+female <- factor(female)
+type <- factor(type)
+
+doit <- function(celltype, N, R) {
+  
+  p <- R/N
+  logitp <- log(p/(1-p))
+  
+  
+  m2 <- glm(logitp ~ female * type)
+  
+  print(summary(m2))
+  
+  new.data <- data.frame(
+                         female=rep(c("TRUE","FALSE"),3),
+                         type=c("aWT","aWT","PLT","PLT","Pound","Pound"))
+  
+  pre <- predict(m2,newdata <- new.data,se.fit=T)
+   
+  
+  y_min <- invlogit( min(pre$fit - 2 * pre$se.fit) - 0.05 )
+  y_max <- invlogit( max(pre$fit + 2 * pre$se.fit) + 0.05 )
+  {
+    plot('',pch='',xlim=c(1,6),xlab="",ylim=c(y_min,y_max),xaxt = 'n',ylab="Prob")
+    axis(1,at=1:6,labels=c("WT f","WT m","PLT f","PLT m","Pound f","Pound m"))
+    grid()
+    for (i in 1:6) {
+      segments(i,invlogit(pre$fit[i] - 2 * pre$se.fit[i]),i,invlogit(pre$fit[i] + 2 * pre$se.fit[i]))
+      points(i,invlogit(pre$fit[i]))
+    }
+  }
+   
+}
+
+
+
+
+
+```
+
+##CD19pos_B220pos_0
+
+```{r }
+N <- mice_spl$live_cells_0
+R <- mice_spl$CD19pos_B220pos_0
+
+doit("Spleen: CD19pos_B220pos_0",N,R)
+```
+
+##CD19pos_B220pos_MHCIIpos_0
+
+```{r }
+R <- mice_spl$CD19pos_B220pos_MHCIIpos_0
+doit(celltype="Spleen: CD19pos_B220pos_MHCIIpos_0",N=N,R=R)
+```
+
+##CD11cpos_0
+
+```{r }
+R <- mice_spl$CD11cpos_0
+doit(celltype="Spleen: CD11cpos_0",N=N,R=R)
+```
+
+##CD11bpos_0
+
+```{r }
+R <- mice_spl$CD11bpos_0
+doit(celltype="Spleen: CD11bpos_0",N=N,R=R)
+```
+
+##mMDSCs_0
+
+```{r }
+R <- mice_spl$mMDSCs_0
+doit(celltype="Spleen: mMDSCs_0",N=N,R=R)
+```
+
+##gMDSCs_0
+
+```{r } 
+R <- mice_spl$gMDSCs_0
+doit(celltype="Spleen: gMDSCs_0",N=N,R=R)
+```
+
+# next set: CD3pos_0
+
+```{r }
+N <- mice_spl$Live.cells_0
+R <- mice_spl$CD3pos_0
+doit(celltype="Spleen: CD3pos_0",N=N,R=R)
+
+```
+
+# next set: CD4pos_0
+
+```{r }
+
+R <- mice_spl$CD4pos_0
+doit(celltype="Spleen: CD3pos_0",N=N,R=R)
+
+```
+
+# next set: CD8pos_0
+
+```{r }
+
+R <- mice_spl$CD8pos_0
+doit(celltype="Spleen: CD3pos_0",N=N,R=R)
+
+```
+
+
+# day 7
+
+```{r }
+mice_spl <- read.csv("~/Documents/mice/data/spleen2.csv",na.strings=c("","NA"),header=TRUE)[56:92,]
+N <- mice_spl$live_cells_7
+head(N)
+female <- grepl('female',mice_spl$Animal_type)
+
+type <- rep("aWT",dim(mice_spl)[1])
+type[grepl('PLT',mice_spl$Animal_type)] <- "PLT"
+type[grepl('Pound',mice_spl$Animal_type)] <- "Pound"
+female <- factor(female)
+type <- factor(type)
+
+```
+
+
+##CD19pos_B220pos_7
+
+```{r }
+N <- mice_spl$live_cells_7
+R <- mice_spl$CD19pos_B220pos_7
+doit("Spleen: CD19pos_B220pos_7",N,R)
+```
+
+##CD19pos_B220pos_MHCIIpos_7
+
+
+```{r }
+R <- mice_spl$CD19pos_B220pos_MHCIIpos_7
+doit(celltype="Spleen: CD19pos_B220pos_MHCIIpos_7",N=N,R=R)
+```
+
+##CD11cpos_7
+
+```{r }
+R <- mice_spl$CD11cpos_7
+doit(celltype="Spleen: CD11cpos_7",N=N,R=R)
+```
+
+##CD11bpos_7
+
+```{r }
+R <- mice_spl$CD11bpos_7
+doit(celltype="Spleen: CD11bpos_7",N=N,R=R)
+```
+
+##mMDSCs_7
+
+```{r }
+R <- mice_spl$mMDSCs_7
+doit(celltype="Spleen: mMDSCs_7",N=N,R=R)
+```
+
+##gMDSCs_7
+
+```{r }
+R <- mice_spl$gMDSCs_7
+doit(celltype="Spleen: gMDSCs_7",N=N,R=R)
+```
+
+##2nd lot: CD3pos_7
+
+```{r }
+N <- mice_spl$Live.cells_7
+R <- mice_spl$CD3pos_7
+doit(celltype="Spleen: CD3pos7",N=N,R=R)
+```
+
+## 2nd lot: CD4pos_7
+
+```{r }
+
+R <- mice_spl$CD4pos_7
+doit(celltype="Spleen: CD4pos7",N=N,R=R)
+```
+
+## 2nd lot: CD8pos_7
+
+```{r }
+
+R <- mice_spl$CD8pos_7
+doit(celltype="Spleen: CD8pos7",N=N,R=R)
+```
+
+
+# day 28
+
+```{r }
+mice_spl <- read.csv("~/Documents/mice/data/spleen2.csv",na.strings=c("","NA"),header=TRUE)[130:162,]
+female <- grepl('female',mice_spl$Animal_type)
+type <- rep("aWT",dim(mice_spl)[1])
+type[grepl('PLT',mice_spl$Animal_type)] <- "PLT"
+type[grepl('Pound',mice_spl$Animal_type)] <- "Pound"
+female <- factor(female)
+type <- factor(type)
+
+
+
+
+```
+
+
+##CD19pos_B220pos_28
+
+```{r }
+N <- mice_spl$live_cells_28
+R <- mice_spl$CD19pos_B220pos_28
+doit("Spleen: CD19pos_B220pos_28",N,R)
+```
+
+##CD19pos_B220pos_MHCIIpos_28
+
+
+```{r }
+R <- mice_spl$CD19pos_B220pos_MHCIIpos_28
+doit(celltype="Spleen: CD19pos_B220pos_MHCIIpos_28",N=N,R=R)
+```
+
+##CD11cpos_28
+
+```{r }
+R <- mice_spl$CD11cpos_28
+doit(celltype="Spleen: CD11cpos_28",N=N,R=R)
+```
+
+##CD11bpos_28
+
+```{r }
+R <- mice_spl$CD11bpos_28
+doit(celltype="Spleen: CD11bpos_28",N=N,R=R)
+```
+
+##mMDSCs_28
+
+```{r }
+R <- mice_spl$mMDSCs_28
+doit(celltype="Spleen: mMDSCs_28",N=N,R=R)
+```
+
+##gMDSCs_28
+
+```{r }
+R <- mice_spl$gMDSCs_28
+doit(celltype="Spleen: gMDSCs_28",N=N,R=R)
+```
+# 2nd lot: CD3pos_28
+
+```{r }
+N <- mice_spl$Live.cells_28
+R <- mice_spl$CD3pos_28
+doit(celltype="Spleen: CD3pos_28",N=N,R=R)
+```
+
+# 2nd lot: CD4pos_28
+
+```{r }
+N <- mice_spl$Live.cells_28
+R <- mice_spl$CD4pos_28
+doit(celltype="Spleen: CD4pos_28",N=N,R=R)
+```
+
+# 2nd lot: CD8pos_28
+
+```{r }
+N <- mice_spl$Live.cells_28
+R <- mice_spl$CD8pos_28
+doit(celltype="Spleen: CD8pos_28",N=N,R=R)
+```
