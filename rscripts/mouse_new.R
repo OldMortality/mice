@@ -3,8 +3,17 @@
 # 2019. Took this from mice2.rmd.
 #
 #
+#library(rjags)
 library(R2jags)
-mice <- read.csv("/Users/micheldelange/Documents/mice/data/mice.csv",header=TRUE)[1:40,]
+
+macFile <- "/Users/micheldelange/Documents/mice/data/mice.csv"
+ubuntuFile <- "~/mice/data/mice.csv"
+
+if (file.exists(macFile)) {
+  mice <- read.csv(macFile,header=TRUE)[1:40,]
+} else {
+  mice <- read.csv(ubuntuFile,header=TRUE)[1:40,]
+}
 
 # number of mice
 N <- dim(mice)[1]
@@ -308,7 +317,7 @@ getMaleWTbyPeriod(period) {
 }
 
 getMaleWTByPeriod <- function(period) {
-  which(getMaleWT() ) %in% getByPeriod(period))
+  #which(getMaleWT() ) %in% getByPeriod(period))
 }
 
 mice[getMaleWT(),]$Animal_type
@@ -319,25 +328,30 @@ colnames(mice)
 
 par(mfrow=c(1,2))
 
-getORs <- function(period) {
-  Odds_WT <- exp(alpha0_sample)
-  etaT2 <- alpha0_sample +  alpha3_sample
-  if (period == 1) {
-    etaT2 <- etaT2 + beta1_sample
+# get linear predictor
+#   period should be [0..4]; type ["WT","T2"]
+#   we don't do period 5, ie day 31
+getLP <- function(type,period) {
+  lp <- 0
+  if (type=="WT") {
+    lp <- alpha0_sample 
+  } else {
+    if (type == "T2") {
+      alpha0_sample +  alpha3_sample
+    }
   }
-  if (period == 2) {
-    etaT2 <- etaT2 + beta2_sample
-  }
-  if (period == 3) {
-    etaT2 <- etaT2 + beta3_sample
-  }
-  if (period == 4) {
-    etaT2 <- etaT2 + beta4_sample
-  }
-  Odds_type2 <- exp(etaT2)
-  OR <- Odds_type2/Odds_WT
-  return(OR)
+  if (period == 1) lp <- lp + alpha4_sample + beta1_sample * (type=="T2")
+  if (period == 2) lp <- lp + alpha5_sample + beta2_sample * (type=="T2")
+  if (period == 3) lp <- lp + alpha6_sample + beta3_sample * (type=="T2")
+  if (period == 4) lp <- lp + alpha7_sample + beta4_sample * (type=="T2")
+  return(lp)
 }
+
+getORs <- function(period) {
+  return(exp(getLP(type="T2",period=period))/exp(getLP(type="WT",period=period)))
+}
+
+
 
 par(mfrow=c(1,1))
 OR <- getORs(period=5)
