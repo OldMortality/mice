@@ -1,6 +1,7 @@
 #
 #
 # 2019. Took this from mice2.rmd.
+#       Fits Bayesian model. 
 #
 #
 #library(rjags)
@@ -326,37 +327,34 @@ mice[1,]$Animal_type
 
 colnames(mice)
 
-par(mfrow=c(1,2))
+
 
 # get linear predictor
 #   period should be [0..4]; type ["WT","T2"]
 #   we don't do period 5, ie day 31
 getLP <- function(type,period) {
-  lp <- 0
-  if (type=="WT") {
-    lp <- alpha0_sample 
-  } else {
-    if (type == "T2") {
-      alpha0_sample +  alpha3_sample
-    }
-  }
-  if (period == 1) lp <- lp + alpha4_sample + beta1_sample * (type=="T2")
-  if (period == 2) lp <- lp + alpha5_sample + beta2_sample * (type=="T2")
-  if (period == 3) lp <- lp + alpha6_sample + beta3_sample * (type=="T2")
-  if (period == 4) lp <- lp + alpha7_sample + beta4_sample * (type=="T2")
+  lp <- alpha0_sample
+  lp <- alpha0_sample +  alpha3_sample * (type == "T2")
+  lp <- lp + alpha4_sample + beta1_sample * (type == "T2") * (period == 1)
+  lp <- lp + alpha5_sample + beta2_sample * (type == "T2") * (period == 2)
+  lp <- lp + alpha6_sample + beta3_sample * (type == "T2") * (period == 3)
+  lp <- lp + alpha7_sample + beta4_sample * (type == "T2") * (period == 4)
   return(lp)
 }
 
+# get Odds Ratio posterior distribution for male T2 vs male WT at
+#   the given period. Works for period on [0,4] ~ [day0,day24]
 getORs <- function(period) {
-  return(exp(getLP(type="T2",period=period))/exp(getLP(type="WT",period=period)))
+  return(exp(getLP(type = "T2", period = period)) /
+           exp(getLP(type = "WT", period = period)))
 }
 
 
 
 par(mfrow=c(1,1))
-OR <- getORs(period=5)
-hist(OR)
 
+OR <- getORs(period = 1)
+hist(OR)
 abline(v=quantile(OR,0.025),col='blue')
 abline(v=quantile(OR,0.975),col='blue')
 abline(v=1,col='red')
