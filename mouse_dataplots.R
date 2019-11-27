@@ -4,10 +4,8 @@
 #       Fits Bayesian model. 
 #
 #
-#library(rjags)
-library(R2jags)
 
-macFile <- "/Users/micheldelange/Documents/mice/data/mice.csv"
+macFile <- "~/Documents/mice/data/mice.csv"
 ubuntuFile <- "~/mice/data/mice.csv"
 
 if (file.exists(macFile)) {
@@ -85,16 +83,17 @@ getMouseType <- function(df,mouse) {
 addMouseToPlot <- function(mouse) {
   print(mouse)
   col <- 'black'
+  pch <- 20
   if (getMouseType(df.mice,mouse) == "Pound") {
-    col <- 'red'
+    col <- 'red' 
   }
   pts <- getPropsByMouse(df.mice,mouse)
-  points(0,pts[1,1],col=col)
-  points(3,pts[1,2],col=col)
-  points(10,pts[1,3],col=col)
-  points(17,pts[1,4],col=col)
-  points(24,pts[1,5],col=col)
-  lines(x=c(0,3,10,17,24),y=pts,col=col)
+  points(0,pts[1,1],col=col,pch=pch)
+  points(3,pts[1,2],col=col,pch=pch)
+  points(10,pts[1,3],col=col,pch=pch)
+  points(17,pts[1,4],col=col,pch=pch)
+  points(24,pts[1,5],col=col,pch=pch)
+  lines(x=c(0,3,10,17,24),y=pts,col=col,pch=pch)
 }
 
 addMiceToPlot <- function(mice) {
@@ -109,12 +108,46 @@ maleWT.mice <-
 malePound.mice <- 
   which(!df.mice$female & df.mice$type == "Pound")
 
-plot('',xlim=c(0,31),ylim=c(0,0.4))
-addMiceToPlot(maleWT.mice)
-addMiceToPlot(malePound.mice)
+{
+  main = celltype
+  plot('',xlim=c(0,24),ylim=c(0,0.4),xaxt='n',
+     main=main,xlab='day')
+  xbreaks <- c(0,3,10,17,
+             24)
+  abline(v=xbreaks,lty=3,col='grey')
+  abline(h=seq(0,1,0.1),lty=3,col='grey')
+  axis(side = 1, at=xbreaks)
+  addMiceToPlot(maleWT.mice)
+  addMiceToPlot(malePound.mice)
+}
 
 
+### t.tests
+# per here is the column, so
+#  1 = time0
+#  2 = time3
+#  3 = time10
+#  4 = time17
+#  5 = time24
+do.ttest <- function(per) {
+  g1 <- getPropsByMouse(df.mice,malePound.mice)[,per]
+  g2 <- getPropsByMouse(df.mice,maleWT.mice)[,per]
+  t.test(g1,g2)
+}
 
 
-
-
+par(mfrow=c(1,1))
+main = paste(celltype,' t-tests: CIs mn(Pound) - mn(WT')
+plot('',xlim=c(0,24),ylim=c(-1,1),xaxt='n',
+     main=main,xlab='day')
+xbreaks <- c(0,3,10,17,
+             24)
+abline(v=xbreaks,lty=3,col='grey')
+abline(h=seq(-1,1,0.1),lty=3,col='grey')
+axis(side = 1, at=xbreaks)
+for (i in 1:5) {
+  t <- do.ttest(i)
+  ci <- t$conf.int
+  segments(xbreaks[i],ci[1],xbreaks[i],ci[2])
+}
+abline(h=0,col='red')

@@ -16,61 +16,69 @@ if (file.exists(macFile)) {
   mice <- read.csv(ubuntuFile,header=TRUE)[1:40,]
 }
 
+
+mice$gender <- grepl('female',mice$Animal_type)
+mice$type_1 <- grepl('PLT',mice$Animal_type)
+mice$type_2 <- grepl('Pound',
+                mice$Animal_type)
+mice$type <- 'WT'
+mice[which(mice$type_1),"type"] <- 'PLT'
+mice[which(mice$type_2),"type"] <- 'T2'
+
+celltype <- "CD19pos_B220"
 # number of mice
 N <- dim(mice)[1]
 # number of time periods (0,3,10,17,24,31)
 periods <- 6
 
-N_0 <- mice$Live_cells_0
-R_0 <- mice$CD19pos_B220pos_0
-N_3 <- mice$Live_cells_3
-R_3 <- mice$CD19pos_B220pos_3
-N_10 <- mice$Live_cells_10
-R_10 <- mice$CD19pos_B220pos_10
-N_17 <- mice$Live_cells_17
-R_17 <- mice$CD19pos_B220pos_17
-N_24 <- mice$Live_cells_24
-R_24 <- mice$CD19pos_B220pos_24
-N_31 <- mice$Live_cells_31
-R_31 <- mice$CD19pos_B220pos_31
+createList <- function(mice) {
 
-gender <- grepl('female',mice$Animal_type)
-type_1 <- grepl('PLT',mice$Animal_type)
-type_2 <- grepl('Pound',
+  N_0 <- mice$Live_cells_0
+  R_0 <- mice$CD19pos_B220pos_0
+  N_3 <- mice$Live_cells_3
+  R_3 <- mice$CD19pos_B220pos_3
+  N_10 <- mice$Live_cells_10
+  R_10 <- mice$CD19pos_B220pos_10
+  N_17 <- mice$Live_cells_17
+  R_17 <- mice$CD19pos_B220pos_17
+  N_24 <- mice$Live_cells_24
+  R_24 <- mice$CD19pos_B220pos_24
+  N_31 <- mice$Live_cells_31
+  R_31 <- mice$CD19pos_B220pos_31
+
+  gender <- grepl('female',mice$Animal_type)
+  type_1 <- grepl('PLT',mice$Animal_type)
+  type_2 <- grepl('Pound',
                 mice$Animal_type)
 
-N_matrix <- data.frame(cbind(N_0,N_3,N_10,N_17,N_24,N_31))
-R_matrix <- data.frame(cbind(R_0,R_3,R_10,R_17,R_24,R_31))
+  N_matrix <- data.frame(cbind(N_0,N_3,N_10,N_17,N_24,N_31))
+  R_matrix <- data.frame(cbind(R_0,R_3,R_10,R_17,R_24,R_31))
 
-time_3 <-  c(0,1,0,0,0,0)
-time_10 <- c(0,0,1,0,0,0)
-time_17 <- c(0,0,0,1,0,0)
-time_24 <- c(0,0,0,0,1,0)
-time_31 <- c(0,0,0,0,0,1)
+  time_3 <-  c(0,1,0,0,0,0)
+  time_10 <- c(0,0,1,0,0,0)
+  time_17 <- c(0,0,0,1,0,0)
+  time_24 <- c(0,0,0,0,1,0)
+  time_31 <- c(0,0,0,0,0,1) 
+  # long notation (i.e. observations as rows)
+  per_long <- vector()
+  mouse_long <- vector()
+  gender_long <- vector()
+  type_1_long <- vector()
+  type_2_long <- vector()
+  time_3_long <- vector()
+  time_10_long <- vector()
+  time_17_long <- vector()
+  time_24_long <- vector()
+  time_31_long <- vector()
+  
 
-
-
-# long notation (i.e. observations as rows)
-per_long <- vector()
-mouse_long <- vector()
-gender_long <- vector()
-type_1_long <- vector()
-type_2_long <- vector()
-time_3_long <- vector()
-time_10_long <- vector()
-time_17_long <- vector()
-time_24_long <- vector()
-time_31_long <- vector()
-
-N_long <- vector()
-R_long <- vector()
-
-
-counter = 0
-skipped = 0
-for (i in 1: N) {
-  for (j in 1:6) {
-    
+  N_long <- vector()
+  R_long <- vector()
+  
+  counter = 0
+  skipped = 0
+  for (i in 1: N) {
+    for (j in 1:6) {
     counter <- counter + 1
     if (is.na(N_matrix[i,j])) {
       skipped <- skipped + 1
@@ -88,15 +96,30 @@ for (i in 1: N) {
     time_17_long <- c(time_17_long,time_17[j])
     time_24_long <- c(time_24_long,time_24[j])
     time_31_long <- c(time_31_long,time_31[j])
+    }
   }
+  theList <- list('R' = R_long,
+                  'Ncells' = N_long,
+                  'period' = per_long,
+                  'mouse'  = mouse_long,
+                  'gender' = gender_long,
+                  'type_1' = type_1_long,
+                  'type_2' = type_2_long,
+                  'time3' =  time_3_long,
+                  'time10' = time_10_long,
+                  'time17' = time_17_long,
+                  'time24' = time_24_long,
+                  'time31' = time_31_long,
+                  'N' = length(R_long))
+  return(theList)
 }
 
-
+theList <- createList(mice)
 
 mouseModel <- function()
 {
   for ( i in 1 : N) {
-    R_long[i] ~ dbin(p[mouse[i], period[i]],N_long[i])
+    R[i] ~ dbin(p[mouse[i], period[i]],Ncells[i])
     b[mouse[i], period[i]] ~ dnorm(0.0, tau); 
     logit(p[mouse[i], period[i]]) <- alpha0 + alpha1 * gender[i] +
       alpha2 * type_1[i] +
@@ -110,6 +133,10 @@ mouseModel <- function()
       beta2 * time10[i] * type_2[i] +
       beta3 * time17[i] * type_2[i] +
       beta4 * time24[i] * type_2[i] +
+      gamma1 * time3[i] * type_1[i] +
+      gamma2 * time10[i] * type_1[i] +
+      gamma3 * time17[i] * type_1[i] +
+      gamma4 * time24[i] * type_1[i] +
       b[mouse[i],period[i]]
   }
   
@@ -127,17 +154,22 @@ mouseModel <- function()
   beta2 ~ dnorm(0.0,1.0E-6) 
   beta3 ~ dnorm(0.0,1.0E-6) 
   beta4 ~ dnorm(0.0,1.0E-6) 
+  gamma1 ~ dnorm(0.0,1.0E-6) 
+  gamma2 ~ dnorm(0.0,1.0E-6) 
+  gamma3 ~ dnorm(0.0,1.0E-6) 
+  gamma4 ~ dnorm(0.0,1.0E-6) 
+  
   tau <- pow(sigma, -2)
   sigma ~ dunif(0,100)
 }
 
 
 
-time_3 <-  c(0,1,0,0,0,0)
-time_10 <- c(0,0,1,0,0,0)
-time_17 <- c(0,0,0,1,0,0)
-time_24 <- c(0,0,0,0,1,0)
-time_31 <- c(0,0,0,0,0,1)
+# time_3 <-  c(0,1,0,0,0,0)
+# time_10 <- c(0,0,1,0,0,0)
+# time_17 <- c(0,0,0,1,0,0)
+# time_24 <- c(0,0,0,0,1,0)
+# time_31 <- c(0,0,0,0,0,1)
 
 # initialise the chains
 
@@ -157,6 +189,10 @@ return( list(
        beta2 = i1,
        beta3 = i1,
        beta4 = i1,
+       gamma1 = i1,
+       gamma2 = i1,
+       gamma3 = i1,
+       gamma4 = i1,
        sigma = 0.9),
   list(alpha0 = i2, 
        alpha1 = i2,
@@ -171,6 +207,10 @@ return( list(
        beta2 = i2,
        beta3 = i2,
        beta4 = i2,
+       gamma1 = i2,
+       gamma2 = i2,
+       gamma3 = i2,
+       gamma4 = i2,
        sigma = 1.1),
   list(alpha0 = i3, 
        alpha1 = i3,
@@ -185,6 +225,10 @@ return( list(
        beta2 = i3,
        beta3 = i3,
        beta4 = i3,
+       gamma1 = i3,
+       gamma2 = i3,
+       gamma3 = i3,
+       gamma4 = i3,
        sigma = 1),
   list(alpha0 = i4, 
        alpha1 = i4,
@@ -199,59 +243,68 @@ return( list(
        beta2 = i4,
        beta3 = i4,
        beta4 = i4,
+       gamma1 = i4,
+       gamma2 = i4,
+       gamma3 = i4,
+       gamma4 = i4,
        sigma = 0.7)
   
 )
 )}
 
+##
+## Rename bugs output, so it is a bit more user friendly
+## 
+renameSamples <- function(samples){ 
+    result <- data.frame(
+      alpha0 = samples$BUGSoutput$sims.list$alpha0,
+      alpha1 = samples$BUGSoutput$sims.list$alpha1,
+      alpha2 =  samples$BUGSoutput$sims.list$alpha2,
+      alpha3 =  samples$BUGSoutput$sims.list$alpha3,
+      alpha4 =  samples$BUGSoutput$sims.list$alpha4,
+      alpha5 =  samples$BUGSoutput$sims.list$alpha5,
+      alpha6 =  samples$BUGSoutput$sims.list$alpha6,
+      alpha7 =  samples$BUGSoutput$sims.list$alpha7,
+      alpha8 =  samples$BUGSoutput$sims.list$alpha8,
+      beta1 =  samples$BUGSoutput$sims.list$beta1,
+      beta2 =  samples$BUGSoutput$sims.list$beta2,
+      beta3 =  samples$BUGSoutput$sims.list$beta3,
+      beta4 =  samples$BUGSoutput$sims.list$beta4,
+      sigma =  samples$BUGSoutput$sims.list$sigma)
+      #p =  samples$BUGSoutput$sims.list$p,
+      #b = samples$BUGSoutput$sims.list$b)
+  return(result)
+}
+
+#res <- renameSamples(samples)
 
 
 parameters <- c("alpha0", "alpha1","alpha2","alpha3","alpha4","alpha5",
                 "alpha6","alpha7","alpha8","beta1","beta2","beta3","beta4",
                 "sigma","p","b")
-samples <- jags(model = mouseModel ,
-                data = list('R_long' = R_long,
-                            'N_long' = N_long,
-                            'period' = per_long,
-                            'mouse'  = mouse_long,
-                            'gender' = gender_long,
-                            'type_1' = type_1_long,
-                            'type_2' = type_2_long,
-                            'time3' =  time_3_long,
-                            'time10' = time_10_long,
-                            'time17' = time_17_long,
-                            'time24' = time_24_long,
-                            'time31' = time_31_long,
-                            'N' = 167 ),
-                parameters,
+
+getSamples <- function(model,data,parameters) {
+
+  samples <- jags(model = mouseModel ,
+                data = theList, 
+                parameters ,
                 n.chains = 4,
                 n.iter = 5000,
                 n.burnin = 1000,
                 inits = setInits(i1 = 0,i2 = 0.1,i3 = -0.1,i4 = 0.245),
                 n.thin = 1,
                 DIC = T)
+   return(renameSamples(samples))
+}
+
+samples <- getSamples(model=mouseModel,data=theList,parameters=parameters)
 
 
 
 #samples$BUGS$summ
 # not sure how this samples from the 4 MC's. I think I am 
 #   probably just sampling from the first one this way.
-alpha0_sample <- samples$BUGSoutput$sims.list$alpha0
-alpha1_sample <- samples$BUGSoutput$sims.list$alpha1
-alpha2_sample <- samples$BUGSoutput$sims.list$alpha2
-alpha3_sample <- samples$BUGSoutput$sims.list$alpha3
-alpha4_sample <- samples$BUGSoutput$sims.list$alpha4
-alpha5_sample <- samples$BUGSoutput$sims.list$alpha4
-alpha6_sample <- samples$BUGSoutput$sims.list$alpha4
-alpha7_sample <- samples$BUGSoutput$sims.list$alpha4
-alpha8_sample <- samples$BUGSoutput$sims.list$alpha4
-beta1_sample <- samples$BUGSoutput$sims.list$beta1
-beta2_sample <- samples$BUGSoutput$sims.list$beta2
-beta3_sample <- samples$BUGSoutput$sims.list$beta3
-beta4_sample <- samples$BUGSoutput$sims.list$beta4
-sigma_sample <- samples$BUGSoutput$sims.list$sigma
-p_sample <- samples$BUGSoutput$sims.list$p
-b_sample <-samples$BUGSoutput$sims.list$b
+
 
 expit <- function(x) {
   return(exp(x)/(1+exp(x)))
@@ -261,25 +314,25 @@ expit <- function(x) {
 ###
 # Compare type_2 (Pound) with wild type mice (type_1=type_2 == 0) for
 # male mice at time 1 (all time_1 ==0)
-type2_t0 <- which(type_2_long & !gender_long & !
-        (time_3_long | time_10_long | time_17_long | time_24_long | time_31_long))
-
-R_long[type2_t0]
-N_long[type2_t0]
-
-
-ytype2 <- R_long[type2_t0]/N_long[type2_t0]
-xtype2 <- rep(0,length(R_long[type2_t0]))
-plot(ytype2~xtype2,ylim=c(0,.4),xlim=c(0,5),
-     col='red')
-yWT <- R_long[WT_t0]/N_long[WT_t0]
-xWT <- rep(0.2,length(R_long[WT_t0]))
-points(yWT~xWT,col='black')
+# type2_t0 <- which(type_2_long & !gender_long & !
+#         (time_3_long | time_10_long | time_17_long | time_24_long | time_31_long))
+# 
+# R_long[type2_t0]
+# N_long[type2_t0]
+# 
+# 
+# ytype2 <- R_long[type2_t0]/N_long[type2_t0]
+# xtype2 <- rep(0,length(R_long[type2_t0]))
+# plot(ytype2~xtype2,ylim=c(0,.4),xlim=c(0,5),
+#      col='red')
+# yWT <- R_long[WT_t0]/N_long[WT_t0]
+# xWT <- rep(0.2,length(R_long[WT_t0]))
+# points(yWT~xWT,col='black')
 
 # get all male WT mice
 
 getMaleWT <- function() {
-  return(which(!gender_long ))
+  return(which(!mice$gender))
 }
 
 # returns all records for a given period
@@ -290,73 +343,202 @@ getMaleWT <- function() {
 #          4  24
 #          5  31 days
 #
-getByPeriod <- function(period) {
-  result <- vector()
-  if (period == 0) 
-    result <- which(!(time_3_long | time_10_long | time_17_long | time_24_long | time_31_long))
-  if (period == 1) 
-    result <- which(time_3_long)
-  if (period == 2) 
-    result <- which(time_10_long)
-  if (period == 3) 
-    result <- which(time_17_long)
-  if (period == 4) 
-    result <- which(time_24_long)
-  if (period == 5) 
-    result <- which(time_31_long)
-  
-  return(result)
-}
-getByPeriod(1)
+# getByPeriod <- function(period) {
+#   result <- vector()
+#   if (period == 0) 
+#     result <- which(!(time_3_long | time_10_long | time_17_long | time_24_long | time_31_long))
+#   if (period == 1) 
+#     result <- which(time_3_long)
+#   if (period == 2) 
+#     result <- which(time_10_long)
+#   if (period == 3) 
+#     result <- which(time_17_long)
+#   if (period == 4) 
+#     result <- which(time_24_long)
+#   if (period == 5) 
+#     result <- which(time_31_long)
+#   
+#   return(result)
+# }
+# getByPeriod(1)
+# 
+# getMaleWTbyPeriod(period) {
+#   WT_t0 <- which(! (type_2_long | type_1_long) & !gender_long & !
+#                    (time_3_long | time_10_long | time_17_long | time_24_long | time_31_long))
+#   R_long[WT_t0]
+#   N_long[WT_t0]
+#   
+# }
 
-getMaleWTbyPeriod(period) {
-  WT_t0 <- which(! (type_2_long | type_1_long) & !gender_long & !
-                   (time_3_long | time_10_long | time_17_long | time_24_long | time_31_long))
-  R_long[WT_t0]
-  N_long[WT_t0]
-  
-}
-
-getMaleWTByPeriod <- function(period) {
-  #which(getMaleWT() ) %in% getByPeriod(period))
-}
-
-mice[getMaleWT(),]$Animal_type
-
-mice[1,]$Animal_type
-
-colnames(mice)
+# getMaleWTByPeriod <- function(period) {
+#   #which(getMaleWT() ) %in% getByPeriod(period))
+# }
+# 
+# mice[getMaleWT(),]$Animal_type
+# 
+# mice[1,]$Animal_type
+# 
+# colnames(mice)
 
 
 
 # get linear predictor
+#   s is the mcmc samples df
 #   period should be [0..4]; type ["WT","T2"]
 #   we don't do period 5, ie day 31
-getLP <- function(type,period) {
-  lp <- alpha0_sample
-  lp <- alpha0_sample +  alpha3_sample * (type == "T2")
-  lp <- lp + alpha4_sample + beta1_sample * (type == "T2") * (period == 1)
-  lp <- lp + alpha5_sample + beta2_sample * (type == "T2") * (period == 2)
-  lp <- lp + alpha6_sample + beta3_sample * (type == "T2") * (period == 3)
-  lp <- lp + alpha7_sample + beta4_sample * (type == "T2") * (period == 4)
-  return(lp)
+
+getLPFactory <- function(model) {
+  if (model=="mouseModel") {
+    getLP <- function(s,type,period) {
+      lp <- s$alpha0 +  s$alpha1 + s$alpha3 * (type == "T2") +
+        (period == 1) * (s$alpha4 + s$beta1 * (type == "T2") ) +
+        (period == 2) * (s$alpha5 + s$beta2 * (type == "T2") ) +
+        (period == 3) * (s$alpha6 + s$beta3 * (type == "T2") ) +
+        (period == 4) * (s$alpha7 + s$beta4 * (type == "T2") )
+      return(lp)
+    }
+  }
+  if (model == "mouseModel2") {
+    print('returning LP for mousemodel2')
+    ## no time:type interactions, ie. no beta
+    getLP <- function(s,type,period) {
+      lp <- s$alpha0 +  s$alpha1 +  s$alpha3 * (type == "T2") +
+        (period == 1) * (s$alpha4  ) +
+        (period == 2) * (s$alpha5  ) +
+        (period == 3) * (s$alpha6  ) +
+        (period == 4) * (s$alpha7  )
+      return(lp)
+    }
+  }
+  if (model == "mouseModel3") {
+    ## no time main effect
+    getLP <- function(s,type,period) {
+      lp <- s$alpha0 +  s$alpha1 +  s$alpha3 * (type == "T2") 
+      return(lp)
+    }
+  }
+  return(getLP)
+  
+  
 }
+
+#getLP <- getLPFactory("mouseModel3")
+ 
+
 
 # get Odds Ratio posterior distribution for male T2 vs male WT at
 #   the given period. Works for period on [0,4] ~ [day0,day24]
-getORs <- function(period) {
-  return(exp(getLP(type = "T2", period = period)) /
-           exp(getLP(type = "WT", period = period)))
+getORs <- function(samples,period,model) {
+  getLP <- getLP <- getLPFactory(model) 
+  return(exp(getLP(samples,type = "T2", period = period)) /
+           exp(getLP(samples,type = "WT", period = period)))
 }
 
+# Odds ratio for given type (T2 or WT), period [0.4]
+#      compared to the same time, period 0
+getORsTime <- function(samples,type,period,model) {
+  getLP <- getLP <- getLPFactory(model) 
+  return(exp(getLP(samples,type = type, period = period)) /
+           exp(getLP(samples,type = type, period = 0)))
+}
 
 
 par(mfrow=c(1,1))
 
-OR <- getORs(period = 1)
-hist(OR)
-abline(v=quantile(OR,0.025),col='blue')
-abline(v=quantile(OR,0.975),col='blue')
-abline(v=1,col='red')
+#period should be [0..4] [0:0 ; 1:3 ; 2:10 ; 3:17; 4:24]
+
+{
+par(mfrow=c(2,3))
+
+    
+  OR <- getORs(samples,period = 0,"mouseModel")
+  p <- hist(OR,main=paste("OR T2/WT ", celltype, "day=0"))
+  abline(v=quantile(OR,0.025),col='blue')
+  abline(v=quantile(OR,0.975),col='blue')
+  abline(v=1,col='red')
+  
+   
+  OR <- getORs(samples,period = 1,"mouseModel")
+  p <- hist(OR,main=paste("OR T2/WT " , celltype, "day=3"))
+  abline(v=quantile(OR,0.025),col='blue')
+  abline(v=quantile(OR,0.975),col='blue')
+  abline(v=1,col='red')
+  
+   
+  OR <- getORs(samples,period = 2,"mouseModel")
+  p <- hist(OR,main=paste("OR T2/WT ", celltype, "day=10"))
+  abline(v=quantile(OR,0.025),col='blue')
+  abline(v=quantile(OR,0.975),col='blue')
+  abline(v=1,col='red')
+  
+  
+  OR <- getORs(samples,period = 3,"mouseModel")
+  p <- hist(OR,main=paste("OR T2/WT ", celltype, "day=17"))
+  abline(v=quantile(OR,0.025),col='blue')
+  abline(v=quantile(OR,0.975),col='blue')
+  abline(v=1,col='red')
+  
+ 
+  OR <- getORs(samples,period = 4,"mouseModel")
+  p <- hist(OR,main=paste("OR T2/WT ", celltype, "day=24"))
+  abline(v=quantile(OR,0.025),col='blue')
+  abline(v=quantile(OR,0.975),col='blue')
+  abline(v=1,col='red')
+  
+}  
+  
+{
+par(mfrow=c(2,2))  
+hist(beta1_sample,main="beta1")
+abline(v=quantile(beta1_sample,0.025),col='blue')
+abline(v=quantile(beta1_sample,0.975),col='blue')
+abline(v=0,col='red')
+
+hist(beta2_sample,main="beta2")
+abline(v=0,col='red')
+abline(v=quantile(beta2_sample,0.025),col='blue')
+abline(v=quantile(beta2_sample,0.975),col='blue')
+
+
+hist(beta3_sample,main="beta3")
+abline(v=0,col='red')
+abline(v=quantile(beta3_sample,0.025),col='blue')
+abline(v=quantile(beta3_sample,0.975),col='blue')
+
+hist(beta4_sample,main="beta4")
+abline(v=quantile(beta4_sample,0.025),col='blue')
+abline(v=quantile(beta4_sample,0.975),col='blue')
+
+abline(v=0,col='red')
+} 
+
+
+par(mfrow=c(2,2))
+# WT mice
+for (period in c(1,2,3,4)) {
+  main = paste("WT, t=", period ,' vs period 0')
+  ORs <- getORsTime(samples,type="WT",period=period,"mouseModel") 
+  hist(ORs,main=main )
+  abline(v=quantile(ORs,0.025),col='blue')
+  abline(v=quantile(ORs,0.975),col='blue')
+  abline(v=1,col='red')
+}
+
+# pound mice
+for (period in c(1,2,3,4)) {
+  main = paste("Pound, t=", period ,' vs period 0')
+  ORs <- getORsTime(type="T2",period=period,model="mouseModel") 
+  hist(ORs,main=main )
+  abline(v=quantile(ORs,0.025),col='blue')
+  abline(v=quantile(ORs,0.975),col='blue')
+  abline(v=1,col='red')
+}
+  
+
+
+
+  
+
+
 
 
