@@ -7,17 +7,24 @@
 #library(rjags)
 library(R2jags)
 
-macFile <- "/Users/micheldelange/Documents/mice/data/mice.csv"
-ubuntuFile <- "~/mice/data/mice.csv"
+# macFile <- "/Users/micheldelange/Documents/mice/data/mice.csv"
+# ubuntuFile <- "~/Documents/mice/data/mice.csv"
+# 
+# if (file.exists(macFile)) {
+#   mice <- read.csv(macFile,header=TRUE)[1:40,]
+# } else {
+#   mice <- read.csv(ubuntuFile,header=TRUE)[1:40,]
+# }
+# 
 
-if (file.exists(macFile)) {
-  mice <- read.csv(macFile,header=TRUE)[1:40,]
-} else {
-  mice <- read.csv(ubuntuFile,header=TRUE)[1:40,]
-}
+setwd("~/Documents/mice")
+
+mice <- read.csv("~/Documents/mice/data/mice.csv",header=TRUE)[1:40,]
 
 
-mice$gender <- grepl('female',mice$Animal_type)
+source('setinits.R')
+
+mice$female <- grepl('female',mice$Animal_type)
 mice$type_1 <- grepl('PLT',mice$Animal_type)
 mice$type_2 <- grepl('Pound',
                 mice$Animal_type)
@@ -28,8 +35,8 @@ mice[which(mice$type_2),"type"] <- 'T2'
 celltype <- "CD19pos_B220"
 # number of mice
 N <- dim(mice)[1]
-# number of time periods (0,3,10,17,24,31)
-periods <- 6
+# number of time periods (0,3,10,17,24)
+periods <- 5
 
 createList <- function(mice) {
 
@@ -49,14 +56,14 @@ createList <- function(mice) {
   type_2 <- grepl('Pound',mice$Animal_type)
                 
 
-  N_matrix <- data.frame(cbind(N_0,N_3,N_10,N_17,N_24,N_31))
-  R_matrix <- data.frame(cbind(R_0,R_3,R_10,R_17,R_24,R_31))
+  N_matrix <- data.frame(cbind(N_0,N_3,N_10,N_17,N_24))
+  R_matrix <- data.frame(cbind(R_0,R_3,R_10,R_17,R_24))
 
   
   # long notation (i.e. observations as rows)
   per_long <- vector()
   mouse_long <- vector()
-  gender_long <- vector()
+  female_long <- vector()
   type_1_long <- vector()
   type_2_long <- vector()
  
@@ -66,39 +73,39 @@ createList <- function(mice) {
   counter = 0
   skipped = 0
   for (i in 1: N) {
-    for (j in 1:6) {
-    counter <- counter + 1
+    for (j in 1:5) {
+    
     if (is.na(N_matrix[i,j])) {
       skipped <- skipped + 1
       next
+    } else {
+      counter <- counter + 1
     }
     # periods run from [0,4] ~ [0,3,10,17,24]
-    per_long    <- c(per_long,j-1)
-    mouse_long  <- c(mouse_long,i)
-    female_long <- c(female_long,female[i])
-    type_1_long <- c(type_1_long,type_1[i])
-    type_2_long <- c(type_2_long, type_2[i])
-    N_long      <- c(N_long,N_matrix[i,j])
-    R_long      <- c(R_long,R_matrix[i,j])
-    
+    per_long[counter]    <- j-1
+    mouse_long[counter]  <- i
+    female_long[counter] <- female[i]
+    type_1_long[counter] <- type_1[i]
+    type_2_long[counter] <- type_2[i]
+    N_long[counter]      <- N_matrix[i,j]
+    R_long[counter]      <- R_matrix[i,j]
     }
   }
-  t3 <- per_long == 3
-  t10 <- per_long == 10
-  t17 <- per_long = 17
-  t24 <- per_long = 24
   
+  # 
   theList <- list('R' = R_long,
                   'Ncells' = N_long,
                   'period' = per_long,
                   'mouse'  = mouse_long,
                   'female' = female_long,
+                  # type as dummy variable
                   'type_1' = type_1_long,
                   'type_2' = type_2_long,
-                  'time3' =  t3,
-                  'time10' = t10,
-                  'time17' = t17,
-                  'time24' = t24,
+                  # time as dummy variable
+                  'time3' =  per_long == 1,
+                  'time10' = per_long == 2,
+                  'time17' = per_long == 3,
+                  'time24' = per_long == 4,
                   'N' = length(R_long))
   return(theList)
 }
@@ -109,15 +116,15 @@ mouseModel <- function()
 {
   for ( i in 1 : N) {
     R[i] ~ dbin(p[mouse[i], period[i]],Ncells[i])
-    b[mouse[i], period[i]] ~ dnorm(0.0, tau); 
-    logit(p[mouse[i], period[i]]) <- a0 + a1 * gender[i] +
+    b[mouse[i], period[i]] ~ dnorm(0.0, tau)
+    logit(p[mouse[i], period[i]]) <- a0 + 
+      a1 * female[i] +
       a2 * type_1[i] +
       a3 * type_2[i] +
       a4 * time3[i] +
       a5 * time10[i] +
       a6 * time17[i] +
       a7 * time24[i] +
-      a8 * time31[i] +
       b1 * time3[i] * type_2[i] +
       b2 * time10[i] * type_2[i] +
       b3 * time17[i] * type_2[i] +
@@ -138,7 +145,6 @@ mouseModel <- function()
   a5 ~ dnorm(0.0,1.0E-6)
   a6 ~ dnorm(0.0,1.0E-6)
   a7 ~ dnorm(0.0,1.0E-6)
-  a8 ~ dnorm(0.0,1.0E-6) 
   b1 ~ dnorm(0.0,1.0E-6) 
   b2 ~ dnorm(0.0,1.0E-6) 
   b3 ~ dnorm(0.0,1.0E-6) 
@@ -153,108 +159,32 @@ mouseModel <- function()
 }
 
 
-
-
-# initialise the chains
-
-
-setInits <- function(i1,i2,i3,i4) { 
-return( list(
-  list(a0 = i1, 
-       a1 = i1,
-       a2 = i1 ,
-       a3 = i1,
-       a4 = i1,
-       a5 = i1,
-       a6 = i1,
-       a7 = i1,
-       a8 = i1,
-       b1 = i1,
-       b2 = i1,
-       b3 = i1,
-       b4 = i1,
-       g1 = i1,
-       g2 = i1,
-       g3 = i1,
-       g4 = i1,
-       sigma = 0.9),
-  list(a0 = i2, 
-       a1 = i2,
-       a2 = i2 ,
-       a3 = i2,
-       a4 = i2,
-       a5 = i2,
-       a6 = i2,
-       a7 = i2,
-       a8 = i2,
-       b1 = i2,
-       b2 = i2,
-       b3 = i2,
-       b4 = i2,
-       g1 = i2,
-       g2 = i2,
-       g3 = i2,
-       g4 = i2,
-       sigma = 1.1),
-  list(a0 = i3, 
-       a1 = i3,
-       a2 = i3,
-       a3 = i3,
-       a4 = i3,
-       a5 = i3,
-       a6 = i3,
-       a7 = i3,
-       a8 = i3,
-       b1 = i3,
-       b2 = i3,
-       b3 = i3,
-       b4 = i3,
-       g1 = i3,
-       g2 = i3,
-       g3 = i3,
-       g4 = i3,
-       sigma = 1),
-  list(a0 = i4, 
-       a1 = i4,
-       a2 = i4,
-       a3 = i4,
-       a4 = i4,
-       a5 = i4,
-       a6 = i4,
-       a7 = i4,
-       a8 = i4,
-       b1 = i4,
-       b2 = i4,
-       b3 = i4,
-       b4 = i4,
-       g1 = i4,
-       g2 = i4,
-       g3 = i4,
-       g4 = i4,
-       sigma = 0.7)
-  
-)
-)}
+ 
 
 ##
 ## Rename bugs output, so it is a bit more user friendly
 ## 
-renameSamples <- function(samples){ 
-    result <- data.frame(
-      a0 = samples$BUGSoutput$sims.list$a0,
-      a1 = samples$BUGSoutput$sims.list$a1,
-      a2 =  samples$BUGSoutput$sims.list$a2,
-      a3 =  samples$BUGSoutput$sims.list$a3,
-      a4 =  samples$BUGSoutput$sims.list$a4,
-      a5 =  samples$BUGSoutput$sims.list$a5,
-      a6 =  samples$BUGSoutput$sims.list$a6,
-      a7 =  samples$BUGSoutput$sims.list$a7,
-      a8 =  samples$BUGSoutput$sims.list$a8,
-      b1 =  samples$BUGSoutput$sims.list$b1,
-      b2 =  samples$BUGSoutput$sims.list$b2,
-      b3 =  samples$BUGSoutput$sims.list$b3,
-      b4 =  samples$BUGSoutput$sims.list$b4,
-      sigma =  samples$BUGSoutput$sims.list$sigma)
+renameSamples <- function(samples){
+  return(data.frame(samples$BUGSoutput$sims.list))
+    # result <- data.frame(
+    #   a0 = samples$BUGSoutput$sims.list$a0,
+    #   a1 = samples$BUGSoutput$sims.list$a1,
+    #   a2 =  samples$BUGSoutput$sims.list$a2,
+    #   a3 =  samples$BUGSoutput$sims.list$a3,
+    #   a4 =  samples$BUGSoutput$sims.list$a4,
+    #   a5 =  samples$BUGSoutput$sims.list$a5,
+    #   a6 =  samples$BUGSoutput$sims.list$a6,
+    #   a7 =  samples$BUGSoutput$sims.list$a7,
+    #   a8 =  samples$BUGSoutput$sims.list$a8,
+    #   b1 =  samples$BUGSoutput$sims.list$b1,
+    #   b2 =  samples$BUGSoutput$sims.list$b2,
+    #   b3 =  samples$BUGSoutput$sims.list$b3,
+    #   b4 =  samples$BUGSoutput$sims.list$b4,
+    #   g1 =  samples$BUGSoutput$sims.list$g1,
+    #   g2 =  samples$BUGSoutput$sims.list$g2,
+    #   g3 =  samples$BUGSoutput$sims.list$g3,
+    #   g4 =  samples$BUGSoutput$sims.list$g3,
+    #   sigma =  samples$BUGSoutput$sims.list$sigma)
       #p =  samples$BUGSoutput$sims.list$p,
       #b = samples$BUGSoutput$sims.list$b)
   return(result)
@@ -264,7 +194,7 @@ renameSamples <- function(samples){
 
 
 parameters <- c("a0", "a1","a2","a3","a4","a5",
-                "a6","a7","a8","b1","b2","b3","b4",
+                "a6","a7","b1","b2","b3","b4",
                 "sigma","p","b")
 
 getSamples <- function(model,data,parameters) {
@@ -299,7 +229,7 @@ expit <- function(x) {
 # get all male WT mice
 
 getMaleWT <- function() {
-  return(which(!mice$gender))
+  return(which(!mice$female))
 }
 
 
