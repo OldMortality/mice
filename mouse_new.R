@@ -36,6 +36,7 @@ celltype <- "CD19pos_B220"
 # number of mice
 N <- dim(mice)[1]
 # number of time periods (0,3,10,17,24)
+# these are labeled 1 through to 5
 periods <- 5
 
 createList <- function(mice) {
@@ -81,8 +82,8 @@ createList <- function(mice) {
     } else {
       counter <- counter + 1
     }
-    # periods run from [0,4] ~ [0,3,10,17,24]
-    per_long[counter]    <- j-1
+    # periods run from [1,5] ~ [0,3,10,17,24]
+    per_long[counter]    <- j
     mouse_long[counter]  <- i
     female_long[counter] <- female[i]
     type_1_long[counter] <- type_1[i]
@@ -102,10 +103,10 @@ createList <- function(mice) {
                   'type_1' = type_1_long,
                   'type_2' = type_2_long,
                   # time as dummy variable
-                  'time3' =  per_long == 1,
-                  'time10' = per_long == 2,
-                  'time17' = per_long == 3,
-                  'time24' = per_long == 4,
+                  'time3' =  per_long == 2,
+                  'time10' = per_long == 3,
+                  'time17' = per_long == 4,
+                  'time24' = per_long == 5,
                   'N' = length(R_long))
   return(theList)
 }
@@ -116,8 +117,10 @@ mouseModel <- function()
 {
   for ( i in 1 : N) {
     R[i] ~ dbin(p[mouse[i], period[i]],Ncells[i])
-    b[mouse[i], period[i]] ~ dnorm(0.0, tau)
-    logit(p[mouse[i], period[i]]) <- a0 + 
+    re[mouse[i], period[i]] ~ dnorm(0.0, tau);
+
+    logit(p[mouse[i], period[i]]) <- 
+      a0 +
       a1 * female[i] +
       a2 * type_1[i] +
       a3 * type_2[i] +
@@ -133,9 +136,9 @@ mouseModel <- function()
       g2 * time10[i] * type_1[i] +
       g3 * time17[i] * type_1[i] +
       g4 * time24[i] * type_1[i] +
-      b[mouse[i],period[i]]
+      re[mouse[i],period[i]]
   }
-  
+
   # priors
   a0 ~ dnorm(0.0,1.0E-6)
   a1 ~ dnorm(0.0,1.0E-6)
@@ -145,18 +148,23 @@ mouseModel <- function()
   a5 ~ dnorm(0.0,1.0E-6)
   a6 ~ dnorm(0.0,1.0E-6)
   a7 ~ dnorm(0.0,1.0E-6)
-  b1 ~ dnorm(0.0,1.0E-6) 
-  b2 ~ dnorm(0.0,1.0E-6) 
-  b3 ~ dnorm(0.0,1.0E-6) 
-  b4 ~ dnorm(0.0,1.0E-6) 
-  g1 ~ dnorm(0.0,1.0E-6) 
-  g2 ~ dnorm(0.0,1.0E-6) 
-  g3 ~ dnorm(0.0,1.0E-6) 
-  g4 ~ dnorm(0.0,1.0E-6) 
-  
+  b1 ~ dnorm(0.0,1.0E-6)
+  b2 ~ dnorm(0.0,1.0E-6)
+  b3 ~ dnorm(0.0,1.0E-6)
+  b4 ~ dnorm(0.0,1.0E-6)
+  g1 ~ dnorm(0.0,1.0E-6)
+  g2 ~ dnorm(0.0,1.0E-6)
+  g3 ~ dnorm(0.0,1.0E-6)
+  g4 ~ dnorm(0.0,1.0E-6)
+
   tau <- pow(sigma, -2)
   sigma ~ dunif(0,100)
 }
+
+
+
+samples <- getSamples(model=mouseModel,data=theList,parameters=parameters)
+
 
 
  
@@ -166,28 +174,6 @@ mouseModel <- function()
 ## 
 renameSamples <- function(samples){
   return(data.frame(samples$BUGSoutput$sims.list))
-    # result <- data.frame(
-    #   a0 = samples$BUGSoutput$sims.list$a0,
-    #   a1 = samples$BUGSoutput$sims.list$a1,
-    #   a2 =  samples$BUGSoutput$sims.list$a2,
-    #   a3 =  samples$BUGSoutput$sims.list$a3,
-    #   a4 =  samples$BUGSoutput$sims.list$a4,
-    #   a5 =  samples$BUGSoutput$sims.list$a5,
-    #   a6 =  samples$BUGSoutput$sims.list$a6,
-    #   a7 =  samples$BUGSoutput$sims.list$a7,
-    #   a8 =  samples$BUGSoutput$sims.list$a8,
-    #   b1 =  samples$BUGSoutput$sims.list$b1,
-    #   b2 =  samples$BUGSoutput$sims.list$b2,
-    #   b3 =  samples$BUGSoutput$sims.list$b3,
-    #   b4 =  samples$BUGSoutput$sims.list$b4,
-    #   g1 =  samples$BUGSoutput$sims.list$g1,
-    #   g2 =  samples$BUGSoutput$sims.list$g2,
-    #   g3 =  samples$BUGSoutput$sims.list$g3,
-    #   g4 =  samples$BUGSoutput$sims.list$g3,
-    #   sigma =  samples$BUGSoutput$sims.list$sigma)
-      #p =  samples$BUGSoutput$sims.list$p,
-      #b = samples$BUGSoutput$sims.list$b)
-  return(result)
 }
 
 #res <- renameSamples(samples)
@@ -195,7 +181,7 @@ renameSamples <- function(samples){
 
 parameters <- c("a0", "a1","a2","a3","a4","a5",
                 "a6","a7","b1","b2","b3","b4",
-                "sigma","p","b")
+                "sigma","p","re")
 
 getSamples <- function(model,data,parameters) {
 
@@ -212,12 +198,6 @@ getSamples <- function(model,data,parameters) {
 }
 
 samples <- getSamples(model=mouseModel,data=theList,parameters=parameters)
-
-
-
-#samples$BUGS$summ
-# not sure how this samples from the 4 MC's. I think I am 
-#   probably just sampling from the first one this way.
 
 
 expit <- function(x) {
