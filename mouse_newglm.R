@@ -116,17 +116,19 @@ for (i in 1: N) {
   )
   
   head(mice2)
-  mice2$type <- "WT"
+  mice2$type <- "aWT"
   mice2[which(mice2$type2),"type"] <- "T2"
   
-  mice2$type1 <- NULL
-  mice2$type2 <- NULL
+  mice2$type <- factor(mice2$type)
+  relevel(mice2$type,ref='WT')
+  
+  
 
   head(mice2)
       
   table(mice2$type)
 
-  m <- lmer(y~stroke_size + type + factor(period) * female +  (1|mouse) , data=mice2)
+  m <- lmer(y~ type + factor(period) * female +  (1|mouse) , data=mice2)
   s <- summary(m)
   CI_lower <- s$coefficients[,2] - 1.96*s$coefficients[,2]
   CI_upper <- s$coefficients[,2] + 1.96*s$coefficients[,2]
@@ -143,8 +145,8 @@ dim(mice2)
 m <- lmer(y~stroke_size + type * factor(period) +  (1|mouse) , data=mice2)
 
 s <- summary(m)
-CI_lower <- s$coefficients[,2] - 1.96*s$coefficients[,2]
-CI_upper <- s$coefficients[,2] + 1.96*s$coefficients[,2]
+CI_lower <- s$coefficients[,1] - 1.67*s$coefficients[,2]
+CI_upper <- s$coefficients[,1] + 1.67*s$coefficients[,2]
 cbind(CI_lower,CI_upper)
 
 #confint(m)
