@@ -142,14 +142,14 @@ mice2 <- mice2[-which(mice2$female),]
 head(mice2)
 dim(mice2)
 
-m <- lmer(y~stroke_size + type * factor(period) +  (1|mouse) , data=mice2)
+m <- lmer(y~ type * factor(period) +  (1|mouse) , data=mice2)
 
 s <- summary(m)
-CI_lower <- s$coefficients[,1] - 1.67*s$coefficients[,2]
-CI_upper <- s$coefficients[,1] + 1.67*s$coefficients[,2]
-cbind(CI_lower,CI_upper)
+CI_lower <- s$coefficients[,1] - 1*s$coefficients[,2]
+CI_upper <- s$coefficients[,1] + 1*s$coefficients[,2]
+round(cbind(CI_lower,CI_upper),2)
 
-#confint(m)
+round(confint(m,level=0.9),2)
 
 plot(m)
 r<- residuals(m)

@@ -128,9 +128,10 @@ m.beta <- glmmTMB(y~type * factor(period)  + (1|mouse),
                   data=mice2, family=list(family="beta",link="logit"))
 
 s <- summary(m.beta)
-CI_lower <- s$coefficients$cond[,2] - 1.96*s$coefficients$cond[,2]
-CI_upper <- s$coefficients$cond[,2] + 1.96*s$coefficients$cond[,2]
+CI_lower <- s$coefficients$cond[,2] - 1.67*s$coefficients$cond[,2]
+CI_upper <- s$coefficients$cond[,2] + 1.67*s$coefficients$cond[,2]
 cbind(exp(CI_lower),exp(CI_upper))
+
 
 
 # police method

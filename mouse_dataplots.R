@@ -120,7 +120,7 @@ getMouseType <- function(df,mouse) {
 }
 #getMouseType(df.mice,6)
 
-addMouseToPlot <- function(mouse) {
+addMouseToPlot <- function(mouse,df) {
   col <- 'black'
   pch <- 20
   if (getMouseType(df.mice,mouse) == "Pound") {
@@ -147,9 +147,9 @@ addMouseToPlot <- function(mouse) {
 
 x <- c(0,3,10,17,24)
 
-addMiceToPlot <- function(mice) {
+addMiceToPlot <- function(mice,df) {
   for (i in 1:length(mice)) {
-    addMouseToPlot(mice[i])
+    addMouseToPlot(mice[i],df)
   }
    
 }
@@ -173,11 +173,11 @@ femalePound.mice <-
   which(df.mice$female & df.mice$type == "Pound")
 
 
-createDataplot <- function(g1,g2,main) {
+createDataplot <- function(g1,g2,main,df,ylim) {
   
   { 
     
-    plot('',xlim=c(0,24),ylim=c(0,0.4),xaxt='n',yaxt='n',
+    plot('',xlim=c(0,24),ylim=c(0,ylim),xaxt='n',yaxt='n',
          main=main,xlab='day')
     xbreaks <- c(0,3,10,17,
                  24)
@@ -187,17 +187,23 @@ createDataplot <- function(g1,g2,main) {
     # ? this does not work
     axis(side = 2, at=c(0.1,0.2,0.3,0.4),labels=c(0.1,0.2,0.3,0.4))
     
-    addMiceToPlot(g1)
-    addMiceToPlot(g2)
+    addMiceToPlot(g1,df)
+    addMiceToPlot(g2,df)
   }
   
-  addMeansToPlot(df.mice,g1,'black')
-  addMeansToPlot(df.mice,g2,'red')
+  addMeansToPlot(df,g1,'black')
+  addMeansToPlot(df,g2,'red')
   
 }
 
 par(mfrow=c(1,1))
-createDataplot(maleWT.mice,malePound.mice,main=str_c(celltype," male"))
+
+celltype = "CD11cpos"
+createDataplot(maleWT.mice,malePound.mice,main=str_c(celltype," male"),mice.df,ylim=0.1)
+
+
+CD11cpos
+
 #createDataplot(femaleWT.mice,femalePound.mice,main=str_c(celltype," female"))
 
 
