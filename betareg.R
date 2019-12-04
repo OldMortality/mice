@@ -120,48 +120,59 @@ head(mice2)
 mice2 <- mice2[-which(mice2$female),]
 head(mice2)
 
-m <- lmer(y~type * factor(period) +  (1|mouse) , data=mice2,REML=F)
-AIC(m)
-m <- lmer(y~type + factor(period) +  (1|mouse) , data=mice2,REML=F)
-AIC(m)
-s <- summary(m)
-CI_lower <- s$coefficients[,1] - 1.96*s$coefficients[,2]
-CI_upper <- s$coefficients[,1] + 1.96*s$coefficients[,2]
-cbind(CI_lower,CI_upper)
-
-confint(m)
 
 
+library(glmmTMB)
 
-plot(m)
-r<- residuals(m)
-boxplot(r~mice2$type)
-boxplot(r~mice2$period)
+m.beta <- glmmTMB(y~type * factor(period)  + (1|mouse), 
+                  data=mice2, family=list(family="beta",link="logit"))
 
+s <- summary(m.beta)
+CI_lower <- s$coefficients$cond[,2] - 1.96*s$coefficients$cond[,2]
+CI_upper <- s$coefficients$cond[,2] + 1.96*s$coefficients$cond[,2]
+cbind(exp(CI_lower),exp(CI_upper))
+
+
+# police method
 par(mfrow=c(2,5))
 real.pos <- floor(runif(1,min=1,max=11))
 for (i in 1:10) {
-  y.sim <- unlist(simulate(m))
+  y.sim <- unlist(simulate(m.beta))
   m.sim <- lmer(y.sim~type * period + (1|mouse) , data=mice2)
   if (i == real.pos) {
-    hist(residuals(m),main="",15,xlim=c(-0.1,0.1))
+    hist(residuals(m.beta),main="",15,xlim=c(-0.1,0.1))
   } else {
     hist(residuals(m.sim),main="",15,xlim=c(-0.1,0.1))
   }
 }
 
-#hist(r)
-#qqplot(residuals(m,type="ss"))
 
-library(betareg)
-# does not support mixed models
-m <-betareg(y~type * factor(period)  , data=mice2)
 
-library(glmmTMB)
-m <- glmmTMB(y~type * factor(period)  + (1|mouse), 
-             data=mice2, family=list(family="beta",link="logit"))
 
-s <- summary(m)
-CI_lower <- s$coefficients$cond[,2] - 1.96*s$coefficients$cond[,2]
-CI_upper <- s$coefficients$cond[,2] + 1.96*s$coefficients$cond[,2]
-cbind(exp(CI_lower),exp(CI_upper))
+r2 <- residuals(m.beta,scale=T)
+qqnorm(r2)
+abline(0,1,col='red')
+
+# show fitted vs actual
+f.beta <- fitted(m.beta)
+par(mfrow=c(1,1))
+plot(1:38,f.beta,ylim=c(0,.4),main='fitted vs observed(red), beta-regression')
+grid()
+points(1:38,mice2$y,col='red')
+
+
+plots <- function(d,p,r) {
+  par(mfrow=c(2,2))
+  col <- rep('black',dim(d)[1])
+  col[which(d$type=='T2')] <- 'red'
+  plot(r~p,main="residuals ~ fitted",col=col)
+  abline(h=0,col='red')
+  #  plot(r~d$stroke_size)
+  
+  boxplot(r~d$type,main='residuals~type')
+  boxplot(r~d$period,main='residuals~time')
+}
+
+
+plots(d=mice2,p=predict(m.beta),r=residuals(m.beta))
+
