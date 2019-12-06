@@ -1,10 +1,10 @@
-timesResiduals <- function(r,df) {
+timesResiduals <- function(r,df,main) {
   df <- mice.df
-  r <- residuals(m)
   mice <- unique(df$mouse)
-  par(mfrow=c(1,1))
-  for (t in 2:2) {
-    plot('',xlim=c(-0.3,0.3),ylim=c(-0.3,0.3),main=paste('t='t))
+  par(mfrow=c(2,3))
+  for (t in 2:5) {
+    plot('',xlim=c(-0.3,0.3),ylim=c(-0.3,0.3),
+         main=paste(main,'t=',t))
     abline(h=0,col='red')
     abline(v=0,col='red')
     for (mouse in mice) {
@@ -16,3 +16,5 @@ timesResiduals <- function(r,df) {
   }
   
 }
+
+timesResiduals(residuals(m),df.mice,"logit lm")
