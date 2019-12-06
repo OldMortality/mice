@@ -148,7 +148,7 @@ invlogit <- function(x) {
 timesResiduals <- function(r,df,main) {
   df <- mice.df
   mice <- unique(df$mouse)
-  par(mfrow=c(2,3))
+  par(mfrow=c(2,2))
   for (t in 2:5) {
     plot('',xlim=c(-0.3,0.3),ylim=c(-0.3,0.3),
          main=paste(main,'t=',t))
