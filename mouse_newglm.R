@@ -1,43 +1,42 @@
 #
 #
 # 2019. Took this from mice.df.rmd.
-#       Fits Bayesian model. 
-#
+#      
 #
 rm(list = ls())
 library(stringr)
 library(lme4)
 setwd("~/Documents/mice")
 source('createMiceDF.R')
+source('waldInterval.R')
 
-mice.df <- createMiceDF(celltype = "CD19pos_B220")
+mice = readFile(filename='data/mice.csv') 
+celltypes <- getcelltypes(mice)
+
+# get data in long format
+mice.df <- createMiceDF(celltype = celltypes[2], mice )
+head(mice.df)
+
+mice=NULL
+
 dim(mice.df)
 # z-value for 95% CI
 Z = 1.96
   
 
-formula <- "y~ type + factor(period) * female +  (1|mouse)" 
-m <- lmer( formula , data=mice.df)
-s <- summary(m)
-getCI(m,Z)  
-  
-mice.df <- mice.df[-which(mice.df$female),]
-head(mice.df)
-dim(mice.df)
 
-m.lm <- lmer(y ~ type * factor(period) +  (1|mouse) , data=mice.df)
-getCI(m.lm,Z)
+## linear model
+m.lm <- lmer(y ~ type * factor(period) +  (1|mouse.name) , data=mice.df)
+waldInterval(model=m.lm,Z,FUN=identity)
 r <- residuals(m.lm)
 timesResiduals(residuals(m.lm),df=mice.df,main='lm')
-#boxplot(r~mice.df$type)
-#boxplot(r~mice.df$period)
 
 
 
 y.sim <- simulate(m.lm,nsim=10)
 rsim <- matrix(nrow = dim(y.sim)[1],ncol=10)
 for (i in 1:10) { 
-    r <- residuals(lmer( unlist(y.sim[i]) ~ type * factor(period) +  (1|mouse) , data=mice.df))  
+    r <- residuals(lmer( unlist(y.sim[i]) ~ type * factor(period) +  (1|mouse.name) , data=mice.df))  
     rsim[,i] <- r
 }
 
@@ -59,12 +58,12 @@ points(1:38,mice.df$y,col='red')
 ###
 library(glmmTMB)
 
-m.beta <- glmmTMB(y~type * factor(period)  + (1|mouse), 
+m.beta <- glmmTMB(y~type * factor(period)  + (1|mouse.name), 
                   data=mice.df, family=list(family="beta",link="logit"))
 
 s <- summary(m.beta)
 # exp to get ORs
-exp(getCI(m,Z) )
+waldIntervalBeta(model=m.beta,Z=Z,FUN=exp)
 
 timesResiduals(residuals(m.beta),df=mice.df,main='beta')
 
@@ -72,7 +71,7 @@ timesResiduals(residuals(m.beta),df=mice.df,main='beta')
 y.sim <- simulate(m.beta,nsim=10)
 rsim <- matrix(nrow = dim(y.sim)[1],ncol=10)
 for (i in 1:10) { 
-  r <- residuals(glmmTMB( unlist(y.sim[i]) ~ type * factor(period)  + (1|mouse), 
+  r <- residuals(glmmTMB( unlist(y.sim[i]) ~ type * factor(period)  + (1|mouse.name), 
                          data=mice.df, family=list(family="beta",link="logit")))
   rsim[,i] <- r
 }
@@ -97,9 +96,8 @@ points(1:38,fitted(m.lm),col='red')
 ## linear model on the logit scale
 ##
 ##
-mice.df$logity <- logit(mice.df$y)
-m.lm <- lmer(logity ~ type * factor(period) +  (1|mouse) , data=mice.df)
-exp(getCI(m.lm,Z))
+m.lm <- lmer(logity ~ type * factor(period) +  (1|mouse.name) , data=mice.df)
+waldInterval(model=m.lm,Z=Z,FUN=exp)
 r <- residuals(m.lm)
 
 #boxplot(r~mice.df$type)
@@ -110,7 +108,7 @@ r <- residuals(m.lm)
 y.sim <- simulate(m.lm,nsim=10)
 rsim <- matrix(nrow = dim(y.sim)[1],ncol=10)
 for (i in 1:10) { 
-  r <- residuals(lmer( unlist(y.sim[i]) ~ type * factor(period) +  (1|mouse) , data=mice.df))  
+  r <- residuals(lmer( unlist(y.sim[i]) ~ type * factor(period) +  (1|mouse.name) , data=mice.df))  
   rsim[,i] <- r
 }
 
@@ -119,7 +117,7 @@ policePlot(residuals(m.lm),rsim,xl= c(-1,1))
 plots(df=mice.df,fit=invlogit(predict(m.lm)),r=r <- residuals(m.lm),qq=T)
 
 
-# show fitted vs actual
+# show fitted for all trhe models
 f <- invlogit(fitted(m.lm))
 par(mfrow=c(1,1))
 plot(1:38,f,xlim=c(1,38),ylim=c(0,0.4),main='fitted vs observed')
@@ -133,3 +131,20 @@ legend(20,.4,
 
 
 timesResiduals(residuals(m.beta),df=mice.df,main='logit lm')
+
+
+
+new.mouse <- data.frame(type=rep("T2",5),period=c(1,2,3,4,5),mouse.name='mouse8')
+
+new.mouse.wt <- data.frame(type=rep("aWT",5),period=c(1,2,3,4,5))
+new.mouse.t2 <- data.frame(type=rep("T2",5),period=c(1,2,3,4,5))
+
+
+predict(m.lm,newdata=new.mouse.wt,re.form=~0)
+
+
+#predict(m.lm,newdata=new.mouse.wt,re.form=~0)
+par(mfrow=c(1,1))
+plot('',xlim=c(1,5),ylim=c(0,0.06))
+lines(1:5,invlogit(predict(m.lm,newdata=new.mouse.wt,re.form=~0)))
+lines(1:5,invlogit(predict(m.lm,newdata=new.mouse.t2,re.form=~0)),col='red')

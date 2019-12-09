@@ -1,14 +1,25 @@
-createMiceDF <- function(celltype) {
+getcelltypes <- function(df) {
+  days <-  c(0,31,3,10,17,24)
+  s <- c(paste('pos_',days,sep=''),paste('_',days,sep='')) 
+  myPattern <- regex(paste(s,collapse='|'))
+  celltypes <- lapply(colnames(df),function(x) str_remove_all(x,pattern=myPattern)) %>% unlist() %>% unique()
+  celltypes <- celltypes[-c(1:5,17)]
+}
+
+
+readFile <- function(filename) {
+  mice <- read.csv(filename,header=TRUE)[1:40,]
+  return(mice)
+}
+
+createMiceDF <- function(celltype, mice) {
 
   setwd("~/Documents/mice")
   source("createMatrix.R")
   
-  mice <- read.csv("data/mice.csv",header=TRUE)[1:40,]
   # file with stroke size
   mice.s <- read.csv("data/mice2.csv",header=TRUE)[1:40,]
   stroke_size <- scale(mice.s$stroke_size)
-  
-  
   
   mice$female <- grepl('female',mice$Animal_type)
   mice$type_1 <- grepl('PLT',mice$Animal_type)
@@ -24,7 +35,6 @@ createMiceDF <- function(celltype) {
   # these are labeled 1 through to 5
   periods <- 5
   
-  mice <- mice[-which(mice$type=='PLT'),]
   table(mice$type)
   female <- grepl('female',mice$Animal_type)
   N_matrix <- getNMatrix(mice,celltype)
@@ -60,22 +70,22 @@ createMiceDF <- function(celltype) {
     }
   }
   
-  
-  
-  
   mice2 <- data.frame(
     y = R_long / N_long,
     period = factor(per_long),
-    mouse = mouse_long,
+    mouse.name = mouse_long,
     female = female_long,
     type = type_long,
     stroke_size = stroke_size_long
   )
   
-  head(mice2)
+  #head(mice2)
   
   mice2$type <- factor(mice2$type)
-  table(mice2$type)
+  mice2$logity = logit(mice2$y)
+  mice2 <- mice2[-which(mice2$type=='PLT'),]
+  mice2 <- mice2[-which(mice2$female),]
+  mice2$female <- NULL
   return(mice2)
 }
 
