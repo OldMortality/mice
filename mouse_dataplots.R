@@ -8,11 +8,6 @@ rm(list = ls())
 library(stringr)
 
 
-library(lme4)
-# one or the other
-#detach(lme4)
-#library(glmmTMB)
-
 
 setwd("~/Documents/mice")
 source('createMatrix.R')
@@ -22,12 +17,11 @@ mice <- read.csv("~/Documents/mice/data/mice.csv",header=TRUE)[1:40,]
 
 # number of mice
 N <- dim(mice)[1]
-# number of time periods (0,3,10,17,24,31)
-periods <- 6
 
+C <- 3
 celltypes <- getcelltypes(mice)  # from createMiceDF.R
-celltype <- "CD19pos_B220"
-celltype <- celltypes[2]
+celltype <- celltypes[C]
+celltype
 
 
 #
@@ -135,9 +129,10 @@ addMeansToPlot <- function(df,theGroup,col) {
 
 
 #male.mice <- df.props[which(!df.props$female),]
-maleWT.mice <- 
+df.props <- create.df(df = mice,celltype)
+maleWT.mice <-
   which(!df.props$female & df.props$type == "WT")
-malePound.mice <- 
+malePound.mice <-
   which(!df.props$female & df.props$type == "Pound")
 
 
@@ -148,9 +143,14 @@ malePound.mice <-
 #   which(df.props$female & df.props$type == "Pound")
 # 
 
-createDataplot <- function(g1,g2,main,df) {
+createDataplot <- function(main,df) {
   
-    ylim <- max(df[c(g1,g2),c("y0","y3","y10","y17","y24")] ,na.rm=T) + 0.05
+    maleWT.mice <- 
+      which(!df$female & df$type == "WT")
+    malePound.mice <- 
+      which(!df$female & df$type == "Pound")
+  
+    ylim <- max(df[c(maleWT.mice,malePound.mice),c("y0","y3","y10","y17","y24")] ,na.rm=T) + 0.05
     plot('',xlim=c(0,24),ylim=c(0,ylim),xaxt='n',yaxt='n',
          main=main,xlab='day')
     xbreaks <- c(0,3,10,17,24)
@@ -160,31 +160,28 @@ createDataplot <- function(g1,g2,main,df) {
     # ? this does not work
     axis(side = 2, at=c(0.1,0.2,0.3,0.4),labels=c(0.1,0.2,0.3,0.4))
     
-    addMiceToPlot(g1,df)
-    addMiceToPlot(g2,df)
+    addMiceToPlot(maleWT.mice,df)
+    addMiceToPlot(malePound.mice,df)
   
   
-  addMeansToPlot(df,g1,'black')
-  addMeansToPlot(df,g2,'red')
+  addMeansToPlot(df,maleWT.mice,'black')
+  addMeansToPlot(df,malePound.mice,'red')
   
 }
 
 par(mfrow=c(1,1))
 
 
-celltype = celltypes[2] 
-celltype
-
-round(getPropsByMouse(df=create.df(df = mice,celltype=celltypes[2]),maleWT.mice),2)
-round(getPropsByMouse(df=create.df(df = mice,celltype=celltypes[2]),malePound.mice),2)
+C = 3
+celltypes[C]
+round(getPropsByMouse(df=create.df(df = mice,celltype=celltypes[C]),maleWT.mice),2)
+round(getPropsByMouse(df=create.df(df = mice,celltype=celltypes[C]),malePound.mice),2)
 
 par(mfrow=c(1,1))
-createDataplot(g1 = maleWT.mice,
-               g2 = malePound.mice,
-               main = str_c(celltype),
-               df = create.df(df = mice,celltype)
-                              
-               )
+createDataplot(main = str_c(celltypes[C]),
+               df = create.df(df = mice,celltypes[C]))
+
+
 
 create.df(df = mice,
                NMatrix = getNMatrix(df=mice,celltype),

@@ -86,6 +86,7 @@ createMiceDF <- function(celltype, mice) {
   mice2 <- mice2[-which(mice2$type=='PLT'),]
   mice2 <- mice2[-which(mice2$female),]
   mice2$female <- NULL
+  mice2$celltype <- celltype
   return(mice2)
 }
 
