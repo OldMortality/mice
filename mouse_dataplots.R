@@ -18,7 +18,7 @@ mice <- read.csv("~/Documents/mice/data/mice.csv",header=TRUE)[1:40,]
 # number of mice
 N <- dim(mice)[1]
 
-C <- 3
+C <- 5
 celltypes <- getcelltypes(mice)  # from createMiceDF.R
 celltype <- celltypes[C]
 celltype
@@ -172,7 +172,7 @@ createDataplot <- function(main,df) {
 par(mfrow=c(1,1))
 
 
-C = 3
+C = 5
 celltypes[C]
 round(getPropsByMouse(df=create.df(df = mice,celltype=celltypes[C]),maleWT.mice),2)
 round(getPropsByMouse(df=create.df(df = mice,celltype=celltypes[C]),malePound.mice),2)

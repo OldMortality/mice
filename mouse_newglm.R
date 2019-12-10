@@ -14,7 +14,7 @@ mice = readFile(filename='data/mice.csv')
 celltypes <- getcelltypes(mice)
 
 # get data in long format
-C = 4
+C = 5
 celltypes[C]
 # create dataset in the long format for the given cell type
 mice.df <- createMiceDF(celltype = celltypes[C], mice )
