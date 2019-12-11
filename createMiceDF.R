@@ -1,7 +1,10 @@
+library(dplyr)
+library(stringr)
+
 getcelltypes <- function(df) {
   days <-  c(0,31,3,10,17,24)
   s <- c(paste('pos_',days,sep=''),paste('_',days,sep='')) 
-  myPattern <- regex(paste(s,collapse='|'))
+  myPattern <- paste(s,collapse='|')
   celltypes <- lapply(colnames(df),function(x) str_remove_all(x,pattern=myPattern)) %>% unlist() %>% unique()
   celltypes <- celltypes[-c(1:5,17)]
 }
@@ -161,7 +164,7 @@ timesResiduals <- function(r,df,main) {
   mice <- unique(df$mouse)
   par(mfrow=c(2,2))
   for (t in 2:5) {
-    plot('',xlim=c(-0.3,0.3),ylim=c(-0.3,0.3),
+    plot('',xlim=c(-1,1),ylim=c(-1,1),
          main=paste(main,'t=',t))
     abline(h=0,col='red')
     abline(v=0,col='red')
@@ -170,6 +173,7 @@ timesResiduals <- function(r,df,main) {
       y = which(df$mouse==mouse & df$period == t-1)
       if (length(x)==1 & length(y)==1)
         points(r[x],r[y],pch='x')
+        print(c(x,y))
     }
   }
   

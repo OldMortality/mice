@@ -6,19 +6,22 @@
 #
 rm(list = ls())
 library(stringr)
+library(purrr)
 
 
 
 setwd("~/Documents/mice")
 source('createMatrix.R')
+source('createMiceDF.R')
 
 mice <- read.csv("~/Documents/mice/data/mice.csv",header=TRUE)[1:40,]
+celltypes <- getcelltypes(mice)
 
 
 # number of mice
 N <- dim(mice)[1]
 
-C <- 5
+C <- 8
 celltypes <- getcelltypes(mice)  # from createMiceDF.R
 celltype <- celltypes[C]
 celltype
@@ -28,7 +31,7 @@ celltype
 # Creates a dataset with proportions of cells for the given type
 #
 #
- create.df <- function(df,celltype) {
+create.df <- function(df,celltype) {
    
    NMatrix = getNMatrix(df=df,celltype=celltype)
    RMatrix = getRMatrix(df=df,celltype=celltype)
@@ -65,24 +68,16 @@ celltype
  }
 
 
-# subset of mice df, for given celltype. Contains proportions R/N
-# df.props <- create.df(df = mice,celltype)
-# dim(df.props)
-# head(df.props)
-
 
 # return proportions for a give mouse row
 getPropsByMouse <- function(df,id) {
   return(df[id,c("y0","y3","y10","y17","y24")])
 }
 
-
 # returns type of given mouse row
 getMouseType <- function(df,mouse) {
   return(df$type[mouse])
 }
-
-#getMouseType(df.props,6)
 
 
 # adds mouse to the plot
@@ -106,16 +101,6 @@ addMouseToPlot <- function(mouse,df) {
 }
 
 
-# for (mouse in maleWT.mice) {
-#   print(round(getPropsByMouse(df.props,mouse),2))
-# }
-# for (mouse in malePound.mice) {
-#   print(round(getPropsByMouse(df.props,mouse),2))
-# }
-
-
-x <- c(0,3,10,17,24)
-
 addMiceToPlot <- function(mice,df) {
   for (i in 1:length(mice)) {
     addMouseToPlot(mice[i],df)
@@ -128,7 +113,6 @@ addMeansToPlot <- function(df,theGroup,col) {
 }
 
 
-#male.mice <- df.props[which(!df.props$female),]
 df.props <- create.df(df = mice,celltype)
 maleWT.mice <-
   which(!df.props$female & df.props$type == "WT")
@@ -136,19 +120,19 @@ malePound.mice <-
   which(!df.props$female & df.props$type == "Pound")
 
 
-# female.mice <- df.props[which(df.props$female),]
-# femaleWT.mice <- 
-#   which(df.props$female & df.props$type == "WT")
-# femalePound.mice <- 
-#   which(df.props$female & df.props$type == "Pound")
-# 
+getMaleWT <- function(df) {
+  which(!df$female & df$type == "WT")
+}
+
+getMalePound <- function(df) {
+  which(!df$female & df$type == "Pound")
+}
+
 
 createDataplot <- function(main,df) {
   
-    maleWT.mice <- 
-      which(!df$female & df$type == "WT")
-    malePound.mice <- 
-      which(!df$female & df$type == "Pound")
+    maleWT.mice <- getMaleWT(df)
+    malePound.mice <- getMalePound(df)
   
     ylim <- max(df[c(maleWT.mice,malePound.mice),c("y0","y3","y10","y17","y24")] ,na.rm=T) + 0.05
     plot('',xlim=c(0,24),ylim=c(0,ylim),xaxt='n',yaxt='n',
@@ -170,83 +154,14 @@ createDataplot <- function(main,df) {
 }
 
 par(mfrow=c(1,1))
-
-
-C = 5
-celltypes[C]
-round(getPropsByMouse(df=create.df(df = mice,celltype=celltypes[C]),maleWT.mice),2)
-round(getPropsByMouse(df=create.df(df = mice,celltype=celltypes[C]),malePound.mice),2)
+C = 8
+celltype <- celltypes[C]
+df <- create.df(df = mice, celltype = celltype)
+celltype
+round(getPropsByMouse(df=df,getMaleWT(df)),2)
+round(getPropsByMouse(df=df,getMalePound(df)),2)
 
 par(mfrow=c(1,1))
 createDataplot(main = str_c(celltypes[C]),
                df = create.df(df = mice,celltypes[C]))
-
-
-
-create.df(df = mice,
-               NMatrix = getNMatrix(df=mice,celltype),
-               RMatrix = getRMatrix(df=mice,celltype))
-
-dim(dfx)
-
-CD11cpos
-
-#createDataplot(femaleWT.mice,femalePound.mice,main=str_c(celltype," female"))
-
-
-
-### t.tests
-# per here is the column, so
-#  1 = time0
-#  2 = time3
-#  3 = time10
-#  4 = time17
-#  5 = time24
-do.ttest <- function(per) {
-  g1 <- getPropsByMouse(df.props,malePound.mice)[,per]
-  g2 <- getPropsByMouse(df.props,maleWT.mice)[,per]
-  t.test(g1,g2)
-}
-
-
-for (i in 1:5) {
-  print(i)
-  t <- do.ttest(i)
-  print(t)
-}
-
-par(mfrow=c(1,1))
-main = paste(celltype,' t-tests: CIs mn(Pound) - mn(WT')
-plot('',xlim=c(0,24),ylim=c(-1,1),xaxt='n',
-     main=main,xlab='day')
-xbreaks <- c(0,3,10,17,
-             24)
-abline(v=xbreaks,lty=3,col='grey')
-abline(h=seq(-1,1,0.1),lty=3,col='grey')
-axis(side = 1, at=xbreaks)
-for (i in 1:5) {
-  t <- do.ttest(i)
-  ci <- t$conf.int
-  segments(xbreaks[i],ci[1],xbreaks[i],ci[2])
-}
-abline(h=0,col='red')
-
-
-# paired t-test for one type of mouse, period compared to period 0
-doPairedttest <- function(per,group) {
-  g1 <- getPropsByMouse(df.props,group)[,per]
-  g2 <- getPropsByMouse(df.props,group)[,1]
-  t.test(g1,g2,paired=T)
-}
-
-group = maleWT.mice
-doPairedttest(2,group)$p.value
-doPairedttest(3,group)$p.value
-doPairedttest(4,group)$p.value
-doPairedttest(5,group)$p.value
-group = malePound.mice
-doPairedttest(2,group)$p.value
-doPairedttest(3,group)$p.value
-doPairedttest(4,group)$p.value
-doPairedttest(5,group)$p.value
 

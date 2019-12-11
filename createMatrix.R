@@ -14,10 +14,15 @@ getNMatrix <- function(df,celltype) {
 getRMatrix <- function(df,celltype) {
   
   getColname <- function(num,celltype) {
-    return(paste(celltype,'pos_',num,sep=''))
+    result <- paste(celltype,'pos_',num,sep='')
+    if (celltype %in% c("mMDSCs","gMDSCs","intMDSCs")) {
+      result <- result %>% str_remove('pos')
+    }
+    return(result)
   }
   
-  if (celltype %in% c("CD19pos_B220","CD11c","CD19","CD19pos_B220pos_MHCII","CD11b")) {
+  if (celltype %in% 
+      c("CD19pos_B220","CD11c","CD19","CD19pos_B220pos_MHCII","CD11b","mMDSCs","gMDSCs","intMDSCs")) {
     days <- c(0,3,10,17,24)
     colnames <- days %>% map(getColname,celltype=celltype) %>% unlist
     result <- df[,colnames] 
@@ -27,4 +32,4 @@ getRMatrix <- function(df,celltype) {
   
 }
 
-#getRMatrix(mice,celltypes[3])
+#getRMatrix(mice,celltypes[7])

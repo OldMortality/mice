@@ -14,7 +14,7 @@ mice = readFile(filename='data/mice.csv')
 celltypes <- getcelltypes(mice)
 
 # get data in long format
-C = 5
+C = 8
 celltypes[C]
 # create dataset in the long format for the given cell type
 mice.df <- createMiceDF(celltype = celltypes[C], mice )
@@ -26,6 +26,52 @@ dim(mice.df)
 # z-value for 95% CI
 Z = 1.96
   
+
+
+##
+## linear model on the logit scale
+##
+##
+m.logit <- lmer(logity ~ type * factor(period) +  (1|mouse.name) , data=mice.df)
+waldInterval(model=m.logit,Z=Z,FUN=exp)
+r <- residuals(m.logit)
+
+y.sim <- simulate(m.logit,nsim=10)
+rsim <- matrix(nrow = dim(y.sim)[1],ncol=10)
+for (i in 1:10) { 
+  r <- residuals(lmer( unlist(y.sim[i]) ~ type * factor(period) +  (1|mouse.name) , data=mice.df))  
+  rsim[,i] <- r
+}
+
+
+policePlot(residuals(m.logit),rsim,xl= c(-1,1))
+plots(df=mice.df,fit=invlogit(predict(m.logit)),r=r <- residuals(m.logit),qq=T)
+
+
+new.mouse <- data.frame(type=rep("T2",5),period=c(1,2,3,4,5),mouse.name='mouse8')
+new.mouse.wt <- data.frame(type=rep("aWT",5),period=c(1,2,3,4,5))
+new.mouse.t2 <- data.frame(type=rep("T2",5),period=c(1,2,3,4,5))
+predict(m.logit,newdata=new.mouse.wt,re.form=~0)
+predict(m.logit,newdata=new.mouse.t2,re.form=~0)
+
+
+#predict(m.lm,newdata=new.mouse.wt,re.form=~0)
+par(mfrow=c(1,1))
+plot('',xlim=c(0,24),ylim=c(0,0.1), 
+     main=paste(celltypes[C], ' prediction'),
+     xaxt='n')
+axis(1,c(0,3,10,17,24))
+lines(c(0,3,10,17,24),invlogit(predict(m.logit,newdata=new.mouse.wt,re.form=~0)))
+lines(c(0,3,10,17,24),invlogit(predict(m.logit,newdata=new.mouse.t2,re.form=~0)),col='red')
+
+timesResiduals(residuals(m.logit),df=mice.df,main='lm')
+# show fitted vs actual
+f <- invlogit(fitted(m.logit))
+par(mfrow=c(1,1))
+plot(1:38,f,xlim=c(1,38),ylim=c(0,0.2),main='fitted vs observed (red) Normal model')
+grid()
+points(1:38,mice.df$y,col='red')
+
 
 
 ## linear model
@@ -94,30 +140,6 @@ plots(df=mice.df,fit=predict(m.beta),r=residuals(m.beta))
 par(mfrow=c(1,1))
 plot(1:38,f.beta,ylim=c(0,.4),main='fitted lm vs beta regression(red)')
 points(1:38,fitted(m.lm),col='red')
-
-##
-## linear model on the logit scale
-##
-##
-m.lm <- lmer(logity ~ type * factor(period) +  (1|mouse.name) , data=mice.df)
-waldInterval(model=m.lm,Z=Z,FUN=exp)
-r <- residuals(m.lm)
-
-#boxplot(r~mice.df$type)
-#boxplot(r~mice.df$period)
-
-
-
-y.sim <- simulate(m.lm,nsim=10)
-rsim <- matrix(nrow = dim(y.sim)[1],ncol=10)
-for (i in 1:10) { 
-  r <- residuals(lmer( unlist(y.sim[i]) ~ type * factor(period) +  (1|mouse.name) , data=mice.df))  
-  rsim[,i] <- r
-}
-
-
-policePlot(residuals(m.lm),rsim,xl= c(-1,1))
-plots(df=mice.df,fit=invlogit(predict(m.lm)),r=r <- residuals(m.lm),qq=T)
 
 
 # show fitted for all trhe models
