@@ -68,7 +68,7 @@ timesResiduals(residuals(m.logit),df=mice.df,main='lm')
 # show fitted vs actual
 f <- invlogit(fitted(m.logit))
 par(mfrow=c(1,1))
-plot(1:38,f,xlim=c(1,38),ylim=c(0,0.2),main='fitted vs observed (red) Normal model')
+plot(1:38,f,xlim=c(1,38),ylim=c(0,0.06),main='fitted vs observed (red) Normal model')
 grid()
 points(1:38,mice.df$y,col='red')
 
@@ -145,10 +145,12 @@ points(1:38,fitted(m.lm),col='red')
 # show fitted for all trhe models
 f <- invlogit(fitted(m.lm))
 par(mfrow=c(1,1))
-plot(1:38,f,xlim=c(1,38),ylim=c(0,0.4),main='fitted vs observed')
+plot(1:38,f,xlim=c(1,38),ylim=c(0,0.06),main='fitted vs observed')
 grid()
 points(1:38,mice.df$y,col='red')
 points(1:38,fitted(m.beta),col='blue')
+points(1:38,invlogit(fitted(m.logit)),col='black')
+
 legend(20,.4, 
        c('logit lm,','beta','lm'),
        lty=c(1,1), # gives the legend appropriate symbols (lines)
@@ -168,8 +170,27 @@ new.mouse.t2 <- data.frame(type=rep("T2",5),period=c(1,2,3,4,5))
 predict(m.lm,newdata=new.mouse.wt,re.form=~0)
 
 
+
+
+
+
 #predict(m.lm,newdata=new.mouse.wt,re.form=~0)
 par(mfrow=c(1,1))
 plot('',xlim=c(1,5),ylim=c(0,0.06))
 lines(1:5,invlogit(predict(m.lm,newdata=new.mouse.wt,re.form=~0)))
 lines(1:5,invlogit(predict(m.lm,newdata=new.mouse.t2,re.form=~0)),col='red')
+
+fw<-data.frame(fertilizer="added",week=6)
+p1<-predict(a1,fw,re.form=NA)
+head(model.matrix(a1));
+x1<-matrix(c(1,0,6,0),1,4)
+V1<-vcov(a1);
+se1<-sqrt(diag(x1%*%V1%*%t(x1)))
+[and likewise for a2 and a3...]
+p<-c(p1,p2,p3);se<-c(se1,se2,se3)
+z<-qnorm(0.975);low<-p-z*se;upp<-p+z*se
+res<-rbind(p,se,low,upp);print(round(res,digits=3))
+
+
+p1 <- predict(m.logit,newdata=new.mouse.wt,re.form=~0)
+V1 <- vcov(m.logit)
