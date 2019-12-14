@@ -100,13 +100,45 @@ sd <- 1.4
 d.cov <- 0.8 * sd ^ 2 
 sigma <- matrix(c(sd^2,d.cov,d.cov,sd^2),nrow = 2) 
 
+
+getpow2 <- function(n) {
+  
+  diff <- -0.57
+  pow <- 0
+  N.SIMS <- 10000
+  x.m <- vector()
+  s.m <- vector()
+  for (sim in 1:N.SIMS) {
+    x <- mvrnorm(n , mu= c(8.9,8.9 + diff) ,Sigma = sigma)
+    x1 <- x[,1]
+    x2 <- x[,2]
+    # control group
+    xc <- mvrnorm(n , mu= c(8.9,8.9 ) ,Sigma = sigma)
+    x1c <- xc[,1]
+    x2c <- xc[,2]
+    
+    # x.m[sim] <- mean(x1-x2)
+    # xc.m[sim] <- mean(x1-x2)
+    # 
+    #s.m[sim] <- sqrt(var(x1-x2))
+    if (t.test(x1-x2,x1c-x2c)$p.val < 0.05) {
+      pow <- pow + 1
+    }
+  }
+  pow/N.SIMS
+  
+}
+
+
+getpow <- function(n) {
+
 diff <- -0.57
 pow <- 0
 N.SIMS <- 10000
 x.m <- vector()
 s.m <- vector()
 for (sim in 1:N.SIMS) {
-  x <- mvrnorm(n = 41, mu= c(8.9,8.9 + diff) ,Sigma = sigma)
+  x <- mvrnorm(n , mu= c(8.9,8.9 + diff) ,Sigma = sigma)
   x1 <- x[,1]
   x2 <- x[,2]
   x.m[sim] <- mean(x1-x2)
@@ -116,6 +148,28 @@ for (sim in 1:N.SIMS) {
   }
 }
 pow/N.SIMS
+
+}
+
+library(pipeR)
+
+ns <- seq(15,50,1)
+ns %>% map(getpow) %>>% (~ pows) 
+ns %>% map(getpow2) %>>% (~ pows2) 
+
+
+#pows <- map(ns,getpow)
+
+#ns %>>%  (~ fred)
+
+plot(ns,unlist(pows))
+lines(ns,unlist(pows))
+lines(ns,unlist(pows2),col='blue')
+lines(ns,1-pnorm(1.75/sqrt(ns),mean=0.57,sd=sqrt(0.8/ns)),col='red')
+abline(h=0.8)
+grid()
+#unlist(pows2)
+
 
 hist(s.m,prob=T)
 abline(v=0.8,col='red')
@@ -136,6 +190,10 @@ lines(density(x.bar.h1),col='red',xlim=c(-1,1))
 
 #acceptance region for H0
 upp <- 1.96 * sqrt(0.8/N)
-abline(v= upp  ,col='blue')
+low <- -1.96 * sqrt(0.8/N)
+abline(v= c(low,upp)  ,col='blue')
 # power
-sum(x.bar.h1 > upp) /length(x.bar.h1)
+sum(x.bar.h1 < upp) /length(x.bar.h1)
+
+# power
+1-pnorm(upp,mean=0.57,sd=sqrt(0.8/N))
