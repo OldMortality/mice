@@ -1,12 +1,11 @@
 getNMatrix <- function(df,celltype) {
-  #if (celltype %in% c("CD19pos_B220","CD11cpos")) {
     N_0  <- df$Live_cells_0
     N_3  <- df$Live_cells_3
     N_10 <- df$Live_cells_10
     N_17 <- df$Live_cells_17
     N_24 <- df$Live_cells_24
     return(data.frame(cbind(N_0,N_3,N_10,N_17,N_24)))
-  #}
+  
 }
 
 
