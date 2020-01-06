@@ -14,7 +14,7 @@ mice = readFile(filename='data/mice.csv')
 celltypes <- getcelltypes(mice)
 
 # get data in long format
-C = 7
+C = 1
 celltypes[C]
 # create dataset in the long format for the given cell type
 mice.df <- createMiceDF(celltype = celltypes[C], mice )
@@ -53,15 +53,16 @@ m.logit <- lmer(logity ~ type * factor(period) +  (1|mouse.name) ,
                 data=mice.df)
 
 library(nlme) # will get p-values
-mm <- lme(logity ~ type * factor(period) ,random=~1|mouse.name, 
+m1 <- lme(logity ~ type * factor(period) ,random=~1|mouse.name, 
           data=mice.df)
   
-anova(mm)
+anova(m2)
 
-summary(m.logit)
-anova(m.logit)
-m.logit2 <- lmer(logity ~ type + factor(period) +  (1|mouse.name) , 
-                data=mice.df)
+# use lme4 for CI's
+m.logit <- lmer(logity ~ type * factor(period) + (1|mouse.name), 
+           data=mice.df)
+
+
 #AIC(m.logit)
 anova(m.logit,m.logit2)
 

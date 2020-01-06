@@ -21,10 +21,12 @@ getRMatrix <- function(df,celltype) {
   }
   
   if (celltype %in% 
-      c("CD19pos_B220","CD11c","CD19","CD19pos_B220pos_MHCII","CD11b","mMDSCs","gMDSCs","intMDSCs")) {
+      c("CD19pos_B220","CD11c","CD19","CD19pos_B220pos_MHCII","CD11b","mMDSCs","gMDSCs","intMDSCs",
+        "mMDSCs_MHCII")) {
     days <- c(0,3,10,17,24)
     colnames <- days %>% map(getColname,celltype=celltype) %>% unlist
-    result <- df[,colnames] 
+    result <- df[,colnames]
+    
     colnames(result) <- paste("R_",days,sep="")
     return(result)
   }

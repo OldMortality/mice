@@ -70,6 +70,7 @@ createMiceDF <- function(celltype, mice) {
       stroke_size_long[counter] <- stroke_size[i]
       N_long[counter]      <- N_matrix[i,j]
       R_long[counter]      <- R_matrix[i,j]
+      #R_long[counter]      <- max(R_matrix[i,j],0.001)
     }
   }
   
