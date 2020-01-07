@@ -22,15 +22,19 @@ getRMatrix <- function(df,celltype) {
   
   if (celltype %in% 
       c("CD19pos_B220","CD11c","CD19","CD19pos_B220pos_MHCII","CD11b","mMDSCs","gMDSCs","intMDSCs",
-        "mMDSCs_MHCII")) {
+        "mMDSCs_MHCII","gMDSCs_MHCII","intMDSCs_MHCII")) {
     days <- c(0,3,10,17,24)
     colnames <- days %>% map(getColname,celltype=celltype) %>% unlist
     result <- df[,colnames]
-    
+    for (i in 1:dim(result)[1]) {
+      for (j in 1:dim(result)[2]) {
+        if (!is.na(result[i,j]) & result[i,j] == 0 ) { result[i,j] <- 1}
+      }
+    }
     colnames(result) <- paste("R_",days,sep="")
     return(result)
   }
   
 }
 
-#getRMatrix(mice,celltypes[7])
+#getRMatrix(mice,celltypes[9])

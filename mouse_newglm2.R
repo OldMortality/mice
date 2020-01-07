@@ -22,11 +22,11 @@ celltypes <- getcelltypes(mice)
 C = 1
 celltypes[C]
 # z-value for 95% CI
-Z = 1.96
+Z =  1.96 # 2.58 #1.96
 
 
 
-doCelltype <- function(cellType,mice,Z=1.96, returnType='plot') {
+doCelltype <- function(cellType,mice,Z, returnType='plot') {
   mice.df <- createMiceDF(celltype = cellType, mice )
    
   ## linear model on the logit scale
@@ -36,11 +36,25 @@ doCelltype <- function(cellType,mice,Z=1.96, returnType='plot') {
             data=mice.df)
   f <- anova(m1)
   f
+  summary(m1)
+  
+  # without interaction
+  m0a <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
+            data=mice.df)
+  f0a <- anova(m0a)
+  exp(coefficients(m0a))
+  # the other way around
+  m0b <- lme(logity ~  factor(period) + type ,random=~1|mouse.name, 
+            data=mice.df)
+  f0b <- anova(m0b)
   
   # use lme4 for CI's
   m.logit <- lmer(logity ~ type * factor(period) + (1|mouse.name), 
                   data=mice.df)
   w1 <- waldInterval(model=m.logit,Z=Z,FUN=exp)
+  
+  
+  
   
   new.mouse.wt <- data.frame(type=rep("aWT",5),period=c(1,2,3,4,5))
   new.mouse.t2 <- data.frame(type=rep("T2",5),period=c(1,2,3,4,5))
@@ -101,7 +115,8 @@ doCelltype <- function(cellType,mice,Z=1.96, returnType='plot') {
          ggtitle(cellType) + 
          ylab('proportion') +
          xlab('day') + 
-         theme(legend.position="none")
+         theme(legend.position="none") + 
+         theme(plot.title = element_text(size=12))
   #c(0,max(df.plot$wt,df.plot$t2)+0.1) +
   
   mice.df$typetime <- factor(paste(mice.df$type,mice.df$period,sep='-'))
@@ -110,9 +125,10 @@ doCelltype <- function(cellType,mice,Z=1.96, returnType='plot') {
   for (i in 1:5) {
     mice.df$typetime <- relevel(mice.df$typetime,
                                 ref=reflevs[i])
-    m.logit <- lmer(logity ~ typetime + (1|mouse.name), 
-                    data=mice.df)
-    w <- waldInterval(model=m.logit,Z=Z,FUN=exp)
+    m.logit <- lme(logity ~ typetime ,random = ~1|mouse.name, 
+              data=mice.df)
+    
+    w <- waldInterval.nlme(model=m.logit,Z=Z,FUN=exp)
     if (i==1) {
       results <- data.frame(w[4+i,] )
     } else {
@@ -136,7 +152,8 @@ doCelltype <- function(cellType,mice,Z=1.96, returnType='plot') {
   if (returnType=='plot') {
     return(p)
   } else {
-    return(list(w=w1,f=f,r=results))
+    anova.sum <- round(c(f[4,4],f0a[3,4],f0b[3,4]),4)
+    return(list(w=w1,f=f,f0a=f0a,f0b=f0b,r=results,a=anova.sum))
   }
   
 }
@@ -145,10 +162,11 @@ C = 8
 par(mfrow=c(3,2))
 for (C in 1:length(celltypes[1:8])) {
   print(C)
-  doCelltype(cellType=celltypes[C],mice=mice,Z=Z,returnType='plot')
+  doCelltype(cellType=celltypes[C],mice=mice,Z=Z,returnType='data')
 }
 
-
+C = 1
+l <- doCelltype(cellType=celltypes[C],mice=mice,Z=1.96,returnType='data')
 
 
 
@@ -156,26 +174,45 @@ par(mfrow=c(3,2))
 library(purrr)
 r <- celltypes[1:2] %>% map(doCelltype,mice=mice,Z=Z) 
 
+returnType='data'
 {
-p1 <- doCelltype(celltypes[1],mice=mice,Z=Z) 
-p2 <- doCelltype(celltypes[2],mice=mice,Z=Z) 
-p3 <- doCelltype(celltypes[3],mice=mice,Z=Z) 
-p4 <- doCelltype(celltypes[4],mice=mice,Z=Z) 
-p5 <- doCelltype(celltypes[5],mice=mice,Z=Z) 
-p6 <- doCelltype(celltypes[6],mice=mice,Z=Z) 
-p7 <- doCelltype(celltypes[7],mice=mice,Z=Z) 
-p8 <- doCelltype(celltypes[8],mice=mice,Z=Z) 
+p1 <-  doCelltype(celltypes[1],  mice = mice, Z = Z, returnType = returnType) 
+p2 <-  doCelltype(celltypes[2],  mice = mice, Z = Z, returnType = returnType) 
+p3 <-  doCelltype(celltypes[3],  mice = mice, Z = Z, returnType = returnType) 
+p4 <-  doCelltype(celltypes[4],  mice = mice, Z = Z, returnType = returnType) 
+p5 <-  doCelltype(celltypes[5],  mice = mice, Z = Z, returnType = returnType) 
+p6 <-  doCelltype(celltypes[6],  mice = mice, Z = Z, returnType = returnType) 
+p7 <-  doCelltype(celltypes[7],  mice = mice, Z = Z, returnType = returnType) 
+p8 <-  doCelltype(celltypes[8],  mice = mice, Z = Z, returnType = returnType) 
+p9 <-  doCelltype(celltypes[9],  mice = mice, Z = Z, returnType = returnType) 
+p10 <- doCelltype(celltypes[10], mice = mice,Z = Z,returnType = returnType) 
+p11 <- doCelltype(celltypes[11], mice = mice,Z = Z, returnType = returnType) 
+grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,ncol=4)
+ }
 
+celltypes[1]
+p1$r$p.value <- round(p1$r$p.value,3)
+p1
 
-grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8,ncol=4)
-}
-
-
+l1 <- doCelltype(celltypes[1],mice=mice,Z=Z,returnType='plot') 
 l1 <- doCelltype(celltypes[1],mice=mice,Z=Z,returnType='data') 
 
+l1$a
 
 
 
+
+p1$a
+p2$a
+p3$a
+p4$a
+p5$a
+p6$a
+p7$a
+p8$a
+p9$a
+p10$a
+p11$a
 
 
 # create dataset in the long format for the given cell type
@@ -191,3 +228,96 @@ l1 <- doCelltype(celltypes[1],mice=mice,Z=Z,returnType='data')
 #                 data=mice.df)
 # w <- waldInterval(model=m.logit,Z=Z,FUN=exp)
 # w
+
+ 
+
+## linear model on the logit scale
+
+library(nlme) # will get p-values for anova
+m1 <- lme(logity ~ type * factor(period) ,random=~1|mouse.name, 
+          data=mice.df)
+f <- anova(m1)
+f
+summary(m1)
+
+# without interaction
+m0a <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
+           data=mice.df)
+f0a <- anova(m0a)
+exp(coefficients(m0a))
+# the other way around
+m0b <- lme(logity ~  factor(period) + type ,random=~1|mouse.name, 
+           data=mice.df)
+f0b <- anova(m0b)
+
+# use lme4 for CI's
+m.logit <- lmer(logity ~ type * factor(period) + (1|mouse.name), 
+                data=mice.df)
+w1 <- waldInterval(model=m.logit,Z=Z,FUN=exp)
+
+m.logit2 <- lme(logity ~ type + factor(period) ,random= ~1|mouse.name, 
+                data=mice.df)
+summary(m.logit2)
+
+
+### models for each cell type
+library(nlme) # will get p-values for anova
+
+celltype = celltypes[1]
+celltype
+mice.df <- createMiceDF(celltype = cellType, mice )
+
+m1 <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
+          data=mice.df)
+summary(m1)$tTable
+waldInterval.nlme(m1,Z = Z,FUN = exp)
+
+
+celltype = celltypes[2]
+celltype
+mice.df <- createMiceDF(celltype = celltype, mice )
+
+m2 <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
+          data=mice.df)
+summary(m2)$tTable
+waldInterval.nlme(m2,Z = Z,FUN = exp)
+
+celltype = celltypes[3]
+celltype
+mice.df <- createMiceDF(celltype = celltype, mice )
+
+m3 <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
+          data=mice.df)
+summary(m3)$tTable
+waldInterval.nlme(m3,Z = Z,FUN = exp)
+
+celltype = celltypes[5]
+celltype
+mice.df <- createMiceDF(celltype = celltype, mice )
+
+m5 <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
+          data=mice.df)
+
+summary(m5)$tTable
+
+
+celltype = celltypes[7]
+celltype
+mice.df <- createMiceDF(celltype = celltype, mice )
+
+m7 <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
+          data=mice.df)
+anova(m7)
+summary(m7)$tTable
+waldInterval.nlme(m7,Z = Z,FUN = exp)
+
+celltype = celltypes[11]
+celltype
+mice.df <- createMiceDF(celltype = celltype, mice )
+
+m8 <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
+          data=mice.df)
+anova(m8)
+summary(m8)$tTable
+waldInterval.nlme(m8,Z = Z,FUN = exp)
+
