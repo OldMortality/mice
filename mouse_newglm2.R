@@ -42,6 +42,7 @@ doCelltype <- function(cellType,mice,Z, returnType='plot') {
   m0a <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
             data=mice.df)
   f0a <- anova(m0a)
+  summary(m0a)
   exp(coefficients(m0a))
   # the other way around
   m0b <- lme(logity ~  factor(period) + type ,random=~1|mouse.name, 
@@ -158,12 +159,47 @@ doCelltype <- function(cellType,mice,Z, returnType='plot') {
   
 }
 
-C = 8
+C = 1
 par(mfrow=c(3,2))
-for (C in 1:length(celltypes[1:8])) {
+pvals <- vector()
+cells <- vector()
+for (C in 1:length(celltypes)) {
   print(C)
-  doCelltype(cellType=celltypes[C],mice=mice,Z=Z,returnType='data')
+  l <- doCelltype(cellType=celltypes[C],mice=mice,Z=Z,returnType='data')
+  pvals <- c(pvals,l$r$p.value)
+  cells <- c(cells,rep(C,length(l$r$p.value)))
 }
+cells
+df.p <- data.frame(pvals=pvals,cells=cells)
+# p-values inm ascending order
+df.p <- df.p[with(df.p,order(pvals)), ]
+df.p$rank <- seq(1:length(df.p$pvals))
+
+FDR = 0.10
+df.p$th <- FDR * df.p$rank / 55
+df.p$pvals < df.p$th
+length(which(df.p$pvals < df.p$th))
+length(which(df.p$pvals<0.05))
+df.p$reject <- FALSE 
+# the largest p-value which is smaller than the threshold
+cutoff <- max(which(df.p$pvals < df.p$th))
+# reject H0 for all p-values not larger than cutoff
+df.p[1:cutoff,"reject"] <- TRUE
+df.p
+
+
+plot('',xlim=c(0,55),ylim=c(0,1))
+for (i in 1:55) {
+  if (df.p$reject[i]) {
+    col <- 'red'
+  } else {
+    col <- 'black'
+  }
+  points(i,df.p$pvals[i],col=col)
+}
+
+
+
 
 C = 1
 l <- doCelltype(cellType=celltypes[C],mice=mice,Z=1.96,returnType='data')
@@ -174,7 +210,7 @@ par(mfrow=c(3,2))
 library(purrr)
 r <- celltypes[1:2] %>% map(doCelltype,mice=mice,Z=Z) 
 
-returnType='data'
+returnType='plot'
 {
 p1 <-  doCelltype(celltypes[1],  mice = mice, Z = Z, returnType = returnType) 
 p2 <-  doCelltype(celltypes[2],  mice = mice, Z = Z, returnType = returnType) 
@@ -187,7 +223,8 @@ p8 <-  doCelltype(celltypes[8],  mice = mice, Z = Z, returnType = returnType)
 p9 <-  doCelltype(celltypes[9],  mice = mice, Z = Z, returnType = returnType) 
 p10 <- doCelltype(celltypes[10], mice = mice,Z = Z,returnType = returnType) 
 p11 <- doCelltype(celltypes[11], mice = mice,Z = Z, returnType = returnType) 
-grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,ncol=4)
+grid.arrange(p1,p2,p3,p4,p5,p6,ncol=2)
+grid.arrange(p7,p8,p9,p10,p11,ncol=2)
  }
 
 celltypes[1]

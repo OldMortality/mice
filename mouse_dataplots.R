@@ -21,7 +21,7 @@ celltypes <- getcelltypes(mice)
 # number of mice
 N <- dim(mice)[1]
 
-C <- 8
+C <- 1
 celltypes <- getcelltypes(mice)  # from createMiceDF.R
 celltype <- celltypes[C]
 celltype
@@ -134,7 +134,7 @@ createDataplot <- function(main,df) {
     maleWT.mice <- getMaleWT(df)
     malePound.mice <- getMalePound(df)
   
-    ylim <- max(df[c(maleWT.mice,malePound.mice),c("y0","y3","y10","y17","y24")] ,na.rm=T) + 0.05
+    ylim <- max(df[c(maleWT.mice,malePound.mice),c("y0","y3","y10","y17","y24")] ,na.rm=T) * 1.1
     plot('',xlim=c(0,24),ylim=c(0,ylim),xaxt='n',yaxt='n',
          main=main,xlab='day')
     xbreaks <- c(0,3,10,17,24)
@@ -162,6 +162,7 @@ round(getPropsByMouse(df=df,getMaleWT(df)),2)
 round(getPropsByMouse(df=df,getMalePound(df)),2)
 
 par(mfrow=c(1,1))
+C = 11
 createDataplot(main = str_c(celltypes[C]),
                df = create.df(df = mice,celltypes[C]))
 
