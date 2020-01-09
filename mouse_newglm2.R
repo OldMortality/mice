@@ -227,6 +227,7 @@ grid.arrange(p1,p2,p3,p4,p5,p6,ncol=2)
 grid.arrange(p7,p8,p9,p10,p11,ncol=2)
  }
 
+
 celltypes[1]
 p1$r$p.value <- round(p1$r$p.value,3)
 p1
@@ -350,11 +351,97 @@ waldInterval.nlme(m7,Z = Z,FUN = exp)
 
 celltype = celltypes[11]
 celltype
+
+celltype <- celltypes[1]
 mice.df <- createMiceDF(celltype = celltype, mice )
 
-m8 <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
+m8.i <- lme(logity ~ type * factor(period) ,random=~1|mouse.name, 
           data=mice.df)
+anova(m8.i)
+m8.p <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
+          data=mice.df)
+anova(m8.p)
+m8.type <- lme(logity ~ factor(period) + type   ,random=~1|mouse.name, 
+          data=mice.df)
+anova(m8.type)
+
+
+mice.df$typetime <- factor(paste(mice.df$type,mice.df$period,sep='-'))
+reflevs <- levels(mice.df$typetime)
+mice.df$typetime <- relevel(mice.df$typetime,
+                            ref=reflevs[9])
+m.logit <- lme(logity ~ typetime ,random = ~1|mouse.name, 
+               data=mice.df)
+
+w <- waldInterval.nlme(model=m.logit,Z=Z,FUN=exp)
+w
+
+
+## check T with T-1 as reference level, to see whether
+##   there is change vs the previous period, for each type.
+##   expecting 11 * 2 * 4 = 88 rows
+results.t <- NULL
+results.t <- data.frame(celltype = character(88),
+                      mousetype = character(88),
+                      t0 = character(88),
+                      t1 = character(88),
+                      pval =  numeric(88),
+                      stringsAsFactors = F)
+counter <- 0
+for (celltype in celltypes) {
+  mice.df <- createMiceDF(celltype = celltype, mice )
+  mice.df$typetime <- factor(paste(mice.df$type,mice.df$period,sep='-'))
+  
+  for (mousetype in c('aWT','T2')) {
+    for (i in 1:4) {
+      counter <- counter + 1
+      colref <- paste(type,i,sep='-')
+      nextref <- paste('typetime',mousetype,'-',i+1,sep='')
+      mice.df$typetime <- relevel(mice.df$typetime,
+                                  ref=colref)
+      m.logit <- lme(logity ~ typetime ,random = ~1|mouse.name, 
+                     data=mice.df)
+      w <- waldInterval.nlme(model=m.logit,Z=Z,FUN=exp)
+      
+      results.t[counter,] <- c(toString(celltype),
+                         toString(mousetype),
+                         toString(colref),
+                         toString(nextref),
+                         w[nextref,]$p.value)
+    }
+  }
+}
+dim(results.t)
+results.t$pval <- round(as.numeric(as.character(results.t$pval)),3)
+head(results.t)
+
+
+
+
+
+
 anova(m8)
 summary(m8)$tTable
 waldInterval.nlme(m8,Z = Z,FUN = exp)
 
+
+mice = readFile(filename='data/mice.csv') 
+celltypes <- getcelltypes(mice)
+
+# get data in long format
+C = 1
+celltypes[C]
+# z-value for 95% CI
+Z =  1.96 # 2.58 #1.96
+
+
+
+cellType = celltypes[1]
+ts <- vector()
+mice.df <- createMiceDF(celltype = cellType, mice )
+for (i in 1:5) {
+  t.df <- mice.df[which(mice.df$period==i),c('y','type')]
+  t <- t.test(y~type,data=t.df)
+  ts[i] <- t$p.value
+  }
+round(ts,3)
