@@ -197,7 +197,7 @@ for (i in 1:55) {
   }
   points(i,df.p$pvals[i],col=col)
 }
-
+abline(h=0.05,col='red')
 
 
 
@@ -210,7 +210,7 @@ par(mfrow=c(3,2))
 library(purrr)
 r <- celltypes[1:2] %>% map(doCelltype,mice=mice,Z=Z) 
 
-returnType='plot'
+returnType='data'
 {
 p1 <-  doCelltype(celltypes[1],  mice = mice, Z = Z, returnType = returnType) 
 p2 <-  doCelltype(celltypes[2],  mice = mice, Z = Z, returnType = returnType) 
@@ -395,7 +395,7 @@ for (celltype in celltypes) {
   for (mousetype in c('aWT','T2')) {
     for (i in 1:4) {
       counter <- counter + 1
-      colref <- paste(type,i,sep='-')
+      colref <- paste(mousetype,i,sep='-')
       nextref <- paste('typetime',mousetype,'-',i+1,sep='')
       mice.df$typetime <- relevel(mice.df$typetime,
                                   ref=colref)
@@ -412,8 +412,38 @@ for (celltype in celltypes) {
   }
 }
 dim(results.t)
+
 results.t$pval <- round(as.numeric(as.character(results.t$pval)),3)
 head(results.t)
+
+results.t <- results.t[with(results.t,order(pval)), ]
+results.t$rank <- seq(1:length(results.t$pval))
+
+# Hochberg correction
+FDR = 0.20
+results.t$th <- FDR * results.t$rank / 88
+results.t$pval < results.t$th
+length(which(results.t$pval < results.t$th))
+length(which(results.t$pval<0.05))
+results.t$reject <- FALSE 
+# the largest p-value which is smaller than the threshold
+cutoff <- max(which(results.t$pval < results.t$th))
+# reject H0 for all p-values not larger than cutoff
+results.t[1:cutoff,"reject"] <- TRUE
+results.t
+
+
+plot('',xlim=c(0,88),ylim=c(0,1))
+for (i in 1:88) {
+  if (results.t$reject[i]) {
+    col <- 'red'
+  } else {
+    col <- 'black'
+  }
+  points(i,results.t$pval[i],col=col)
+}
+abline(h=0.05,col='red')
+
 
 
 
