@@ -420,7 +420,7 @@ results.t <- results.t[with(results.t,order(pval)), ]
 results.t$rank <- seq(1:length(results.t$pval))
 
 # Hochberg correction
-FDR = 0.20
+FDR = 0.05
 results.t$th <- FDR * results.t$rank / 88
 results.t$pval < results.t$th
 length(which(results.t$pval < results.t$th))
@@ -462,7 +462,7 @@ celltypes <- getcelltypes(mice)
 C = 1
 celltypes[C]
 # z-value for 95% CI
-Z =  1.96 # 2.58 #1.96
+Z =  1.96 # 2.78  # 2.58 #1.96
 
 
 
