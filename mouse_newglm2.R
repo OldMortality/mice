@@ -26,18 +26,44 @@ Z =  1.96 # 2.58 #1.96
 
 
 
-doCelltype <- function(cellType,mice,Z, returnType='plot') {
+doCelltype <- function(cellType,mice,Z, returnType='plot', interaction=F) {
   mice.df <- createMiceDF(celltype = cellType, mice )
    
   ## linear model on the logit scale
   
   library(nlme) # will get p-values for anova
-  m1 <- lme(logity ~ type * factor(period) ,random=~1|mouse.name, 
+  m1 <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
             data=mice.df)
+  m1 <- lme(logity ~ factor(period) + type,random=~1|mouse.name, 
+            data=mice.df)
+  m1 <- lme(logity ~ type  ,random=~1|mouse.name, 
+            data=mice.df)
+  
+  anova(m1)
+  m2 <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
+            data=mice.df)
+  AIC(m1)
+  m1 <- lme(logity ~ type ,random=~1|mouse.name, data=mice.df)
+  AIC(m1)
+  
   f <- anova(m1)
   f
   summary(m1)
   
+  library(lme4)
+  m1 <- lmer(logity ~ type  + factor(period) + (1|mouse.name), 
+             data=mice.df,REML=F)
+  #lrtest(m2,m1)
+  AIC(m1)
+  BIC(m1)
+  m2 <- lmer(logity ~ type  + (1|mouse.name), 
+            data=mice.df,REML=F)
+  AIC(m2)
+  BIC(m2)
+  lrtest(m1,m2)
+  summary(m1)
+  w <- waldInterval(m1,Z=Z)
+  w
   # without interaction
   m0a <- lme(logity ~ type + factor(period) ,random=~1|mouse.name, 
             data=mice.df)
@@ -50,8 +76,42 @@ doCelltype <- function(cellType,mice,Z, returnType='plot') {
   f0b <- anova(m0b)
   
   # use lme4 for CI's
-  m.logit <- lmer(logity ~ type * factor(period) + (1|mouse.name), 
+  
+  if (interaction ) {
+    m.logit <- lmer(logity ~ type * factor(period) + (1|mouse.name), 
                   data=mice.df)
+    x1 <- matrix(c(1,0,0,0,0,0,0,0,0,0,
+                   1,0,1,0,0,0,0,0,0,0,
+                   1,0,0,1,0,0,0,0,0,0,
+                   1,0,0,0,1,0,0,0,0,0,
+                   1,0,0,0,0,1,0,0,0,0,
+                   1,1,0,0,0,0,0,0,0,0,
+                   1,1,1,0,0,0,1,0,0,0,
+                   1,1,0,1,0,0,0,1,0,0,
+                   1,1,0,0,1,0,0,0,1,0,
+                   1,1,0,0,0,1,0,0,0,1
+    ),
+    
+    nrow=10,ncol=10,byrow=T)
+    
+  } else {
+    m.logit <- lmer(logity ~ type + factor(period) + (1|mouse.name), 
+                    data=mice.df)
+    x1 <- matrix(c(1,0,0,0,0,0,
+                   1,0,1,0,0,0,
+                   1,0,0,1,0,0,
+                   1,0,0,0,1,0,
+                   1,0,0,0,0,1,
+                   1,1,0,0,0,0,
+                   1,1,1,0,0,0,
+                   1,1,0,1,0,0,
+                   1,1,0,0,1,0,
+                   1,1,0,0,0,1
+    ),
+    
+    nrow=10,ncol=6,byrow=T)
+    
+  }
   w1 <- waldInterval(model=m.logit,Z=Z,FUN=exp)
   
   
@@ -64,19 +124,6 @@ doCelltype <- function(cellType,mice,Z, returnType='plot') {
   #predict(m.logit,newdata=new.mouse.t2,re.form=~0) %>% invlogit
   
   V <- vcov(m.logit)
-  x1 <- matrix(c(1,0,0,0,0,0,0,0,0,0,
-                 1,0,1,0,0,0,0,0,0,0,
-                 1,0,0,1,0,0,0,0,0,0,
-                 1,0,0,0,1,0,0,0,0,0,
-                 1,0,0,0,0,1,0,0,0,0,
-                 1,1,0,0,0,0,0,0,0,0,
-                 1,1,1,0,0,0,1,0,0,0,
-                 1,1,0,1,0,0,0,1,0,0,
-                 1,1,0,0,1,0,0,0,1,0,
-                 1,1,0,0,0,1,0,0,0,1
-  ),
-  
-  nrow=10,ncol=10,byrow=T)
   
   se <- sqrt(diag(x1 %*% V %*% t(x1)))
   
@@ -100,9 +147,12 @@ doCelltype <- function(cellType,mice,Z, returnType='plot') {
   segments(t.obs,p.wt.low,t.obs,p.wt.upp)
   segments(t.obs+0.05,p.t2.low,t.obs+0.05,p.t2.upp,col='red')
   
+  wt.pred <- invlogit(predict(m.logit,newdata=new.mouse.wt,re.form=~0))
+  t2.pred <- invlogit(predict(m.logit,newdata=new.mouse.t2,re.form=~0))
+  
   df.plot <- data.frame(t.obs = t.obs,
-                        wt = invlogit(predict(m.logit,newdata=new.mouse.wt,re.form=~0)),
-                        t2 = invlogit(predict(m.logit,newdata=new.mouse.t2,re.form=~0))         
+                        wt = wt.pred,
+                        t2 = t2.pred          
                         )
   
   #breaks=seq(0,0.5,0.1)
@@ -154,7 +204,13 @@ doCelltype <- function(cellType,mice,Z, returnType='plot') {
     return(p)
   } else {
     anova.sum <- round(c(f[4,4],f0a[3,4],f0b[3,4]),4)
-    return(list(w=w1,f=f,f0a=f0a,f0b=f0b,r=results,a=anova.sum))
+    return(list(w=w1,f=f,f0a=f0a,f0b=f0b,r=results,a=anova.sum,
+                wt.low=p.wt.low,
+                wt.upp=p.wt.upp,
+                t2.low=p.t2.low,
+                t2.upp=p.t2.upp,
+                wt.est = wt.pred,
+                t2.est = t2.pred))
   }
   
 }
@@ -210,7 +266,7 @@ par(mfrow=c(3,2))
 library(purrr)
 r <- celltypes[1:2] %>% map(doCelltype,mice=mice,Z=Z) 
 
-returnType='data'
+returnType='plot'
 {
 p1 <-  doCelltype(celltypes[1],  mice = mice, Z = Z, returnType = returnType) 
 p2 <-  doCelltype(celltypes[2],  mice = mice, Z = Z, returnType = returnType) 

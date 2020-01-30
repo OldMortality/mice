@@ -21,7 +21,7 @@ celltypes <- getcelltypes(mice)
 # number of mice
 N <- dim(mice)[1]
 
-C <- 1
+C <- 2
 celltypes <- getcelltypes(mice)  # from createMiceDF.R
 celltype <- celltypes[C]
 celltype
@@ -162,7 +162,7 @@ round(getPropsByMouse(df=df,getMaleWT(df)),2)
 round(getPropsByMouse(df=df,getMalePound(df)),2)
 
 par(mfrow=c(1,1))
-C = 11
+C = 2
 createDataplot(main = str_c(celltypes[C]),
                df = create.df(df = mice,celltypes[C]))
 
